@@ -1,0 +1,236 @@
+---
+title: "Spacemap Protein-Network Analysis Notebook"
+output:
+  html_document: default
+  html_notebook: default
+---
+
+### Feature attribute loading
+
+Load the proteogenomics data. 
+
+```{r}
+suppressPackageStartupMessages(library(Biobase))
+rnaset <- readRDS(file = "~/repos/neta-bccptac/data/rna-expression-set.rds")
+protset <- readRDS(file = "~/repos/neta-bccptac/data/prot-expression-set.rds")
+cnaset <- readRDS(file = "~/repos/neta-bccptac/data/cna-expression-set.rds")
+```
+
+Combine the feature attributes between the response (i.e. protein) and the predictors (i.e. CNA). 
+
+```{r}
+yy_node_attributes <- featureData(protset)
+yy_node_attributes <- pData(yy_node_attributes)
+yy_node_attributes <- yy_node_attributes[,-10]
+xy_node_attributes <- featureData(cnaset)
+xy_node_attributes <- pData(xy_node_attributes)
+xy_yy_node_attributes <- rbind(xy_node_attributes, yy_node_attributes)
+rownames(xy_yy_node_attributes) <- NULL
+```
+
+Load the network analysis functions. 
+
+```{r}
+suppressMessages(library(igraph))
+source("~/repos/bioc_spacemap/R/networkAnalysis.R")
+```
+
+Import the Boot.vote fit as well as the degree distributions of the bootstrap replicates. 
+
+```{r}
+prot_spmap <- readRDS(file = "~/scratch-data/cptac/rep/spacemap_prot_boot_vote.rds")
+ig<-  adj2igraph(YY = prot_spmap$bv$ParCor, 
+                 XY = prot_spmap$bv$Gamma, 
+                 info = xy_yy_node_attributes)
+igy <- adj2igraph(YY = prot_spmap$bv$ParCor, info = yy_node_attributes, dropnull = F)
+#degree distribution of bootstrap replicates
+protbdeg <- readRDS(file = "~/scratch-data/cptac/rep/spacemap_prot_boot_degree.rds")
+xbdeg <- protbdeg$xbdeg
+ybdeg <- protbdeg$ybdeg
+```
+
+
+### Discovery of -cis and -trans regulation 
+
+
+```{r}
+ig <- setEdgeTypeAttr(ig, "x", "y")
+#E(ig)[edge_type %in% "x--y"]
+ig <- setEdgeTypeAttr(ig, "y", "y")
+#E(ig)[edge_type %in% "y--y"]
+ig <- setCisTransAttr(ig = ig, et = c("x--y", "y--y"))
+#E(ig)$cis_trans
+```
+
+
+```{r}
+vseqx <- V(ig)[type %in% "x"]
+xdct <- setCisTransDistr(ig = ig, vseq = vseqx)
+ig <- xdct$ig
+dct <- xdct$dct
+```
+
+
+### Inspect which CNA are most stable
+
+```{r}
+pc <- potentialCis(pact = as_ids(V(ig)[type %in% "x"]),
+                   preg = xy_yy_node_attributes$id[xy_yy_node_attributes$type == "y"], 
+                   info = xy_yy_node_attributes,
+                   YY = prot_spmap$bv$ParCor, XY = prot_spmap$bv$Gamma, 
+                   cw = 2e6, is = T)
+```
+
+
+```{r}
+colnames(xbdeg) <- featureNames(cnaset)
+xhubtab <- renderXhubTable(ig = ig, dct = dct, pc = pc, bdeg = xbdeg)
+suppressMessages(library(xlsx))
+```
+
+```{r}
+netadir <- "c:/Users/topher/Shared/scratch-data/neta-bccptac/neta/spacemap/prot/"
+library(xtable)
+cap <- "Top CNA hubs of spaceMap protein-network."
+print(xtable(xhubtab, display  = c("d","s", "s", "d", "s", "s"), caption = cap),
+      include.rownames=FALSE,
+      type = "latex", 
+      file = file.path(netadir, "spacemap-xhub-prot.tex"))
+xlsx::write.xlsx(x = xhubtab, file = file.path(netadir, "spacemap-xhub-prot.xlsx"))
+```
+
+## GO Enrichment
+
+Load the Protein GO universe. 
+
+```{r}
+go2eg <- readRDS(file = "~/repos/neta-bccptac/data/prot-go-bp-to-entrez-gene-list.rds")
+eg2go <- readRDS(file = "~/repos/neta-bccptac/data/prot-go-entrez-gene-to-bp-list.rds")
+```
+
+
+Obtain network modules using the `Girvan-Newman` algorithm for clust
+
+```{r}
+cebout <- cebModules(ig, glb = 15, prefix = "P")
+ig <- cebout$ig
+lmods <- cebout$module_list
+yy_lmods <- cebout$yy_module_list
+ceb <- cebout$community_obj
+cross_edges <- crossing(communities = ceb, graph = ig)
+cross_edges2 <- names(cross_edges)[cross_edges]
+cross_edge_tab <- splitEdgeVector(cross_edges2)
+```
+
+Report the proportion of edges which have both vertices in the same GO category. 
+
+```{r}
+total_edges <- ecount(igy)
+iyy_edges <- as_ids(E(igy))  
+edge_pair <- strsplit(iyy_edges, split = "|", fixed = TRUE)
+ngopairs <- sapply(edge_pair, function(ep) any(sapply(go2eg, function(egs) all(ep %in% egs))))
+prop_go_pairs <- sum(ngopairs) / total_edges
+sum(ngopairs)
+prop_go_pairs
+```
+
+Identify the GO pair proportion for each CNA hub by considering any two response nodes with a common CNA hub as adjacent.
+
+```{r}
+hgp <- hubGOproportion(ig, go2eg)
+xlsx::write.xlsx(x = hgp, file = file.path(netadir, "spacemap-prot-cna-neighborhood-go-modularity.xlsx"), row.names = F)
+obs_go_prop <- weighted.mean(x = hgp$`Proportion of GO Pairs`, w = hgp$`Out Degree`)
+obs_go_prop
+```
+
+Evaluate the mean GO pair proportion under random graphs with fixed degree distribution. 
+
+```{r}
+xy <- prot_spmap$bv$Gamma + 0
+yy <- prot_spmap$bv$ParCor + 0
+set.seed(58759)
+if(file.exists(file.path(netadir, "go_100_prop.rds"))) { 
+  rnd_go_prop <- readRDS(file.path(netadir, "go_100_prop.rds"))
+} else { 
+  rnd_go_prop <- replicate(n = 100, rndHubGoProportion(xy, yy, info = xy_yy_node_attributes, go2eg = go2eg))
+  saveRDS(list(rnd = rnd_go_prop, obs = obs_go_prop), file = file.path(netadir, "go_100_prop.rds"))
+  mean(rnd_go_prop)
+  sd(rnd_go_prop)
+}
+```
+
+Evaluate which GO terms enrich the protein-network modules. 
+
+```{r}
+modenrich <- moduleEnrichment(lmods = yy_lmods, go2eg = go2eg, igy = igy, fdr_thresh = 0.05)
+head(modenrich)
+```
+
+
+The P-value distribution is well behaved. 
+
+```{r}
+library(ggplot2)
+qplot(modenrich$pvalue) + xlab("P-value of Module Enrichment Analysis")
+```
+
+
+Format the module enrichment results for displaying in a table.
+
+```{r}
+minGO <- 5
+modenrichtab <- renderModuleTable(ig, lmods, modenrich, minGO = minGO) 
+cap <- "GO-enriched modules (edge-betweeness) in spacemap protein-network."
+print(xtable(modenrichtab, display = c("d", "s", "s", "s", "s"), 
+             caption = cap, digits = -2),
+      include.rownames = FALSE, 
+      type = "latex", 
+      file = file.path(netadir, "spacemap-mod-enrichment-prot.tex"))
+```
+
+```{r}
+ig <- setGOTags(lmods = lmods, modenrich = modenrich, 
+                ig = ig, go2eg = go2eg, info = xy_yy_node_attributes)
+```
+
+```{r}
+lmod_attr <- lapply(names(lmods), getModuleInfo,  
+                    lmods = lmods,
+                    modenrich = modenrich,
+                    info = xy_yy_node_attributes, 
+                    cross_edge_tab = cross_edge_tab, 
+                    minGO = minGO)
+names(lmod_attr) <- names(lmods)
+  
+library(xlsx)
+nonull <- lapply(seq_along(lmod_attr), function(i) { 
+  write.xlsx(x = lmod_attr[[i]], 
+             file = paste0(netadir, "spacemap-modules-prot.xlsx"), 
+             sheetName = names(lmod_attr)[i], 
+             row.names = FALSE, append = TRUE)})
+```
+
+Save igraph object.
+
+```{r}
+write.graph(ig, file = file.path(netadir, "spacemap-prot-boot-vote.gml"), format = "gml")
+write.graph(ig, file = file.path(netadir, "spacemap-prot-boot-vote.graphml"), format = "graphml")
+write.graph(ig, file = file.path(netadir, "spacemap-prot-boot-vote.el"), format = "edgelist")
+```
+
+Write modules with enriched terms to a gml file. 
+
+```{r}
+for(mod_name in names(lmod_attr)) { 
+  module_ids <- lmod_attr[[mod_name]]$Unique_ID
+  mod_subgraph <- induced_subgraph(graph = ig, vids = V(ig)[name %in% module_ids])
+  write.graph(mod_subgraph, file = paste0(netadir, "spacemap", mod_name, "_mod_bv_prot.graphml"), format = "graphml")  
+}
+```
+
+
+```{r}
+save.image(file = file.path(netadir, "spacemap-neta-prot.RData"))
+```
+
+

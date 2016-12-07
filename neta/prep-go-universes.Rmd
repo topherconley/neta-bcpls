@@ -1,0 +1,141 @@
+---
+title: "Preparing Gene Ontology universes"
+output:
+  html_document: default
+  html_notebook: default
+---
+
+## Protein GO universe
+
+Load the protein features and map refseq to entrez genes (has been run previously)
+
+```{r,eval=FALSE}
+protset <- readRDS(file = "~/repos/neta-bccptac/data/prot-expression-set.rds")
+library(mygene)
+p2r77map <- queryMany(qterms = featureNames(protset), scopes = "refseq",
+                      fields = c("entrezgene"))
+p2r77map2 <- data.frame(refseq = p2r77map@listData$query, entrezgene = p2r77map@listData$entrezgene)
+saveRDS(p2r77map2, file = "~/scratch-data/neta-bccptac/data/prot-refseq-to-entrezgene-map.rds")
+```
+
+Read in the previous code block's results. 
+
+```{r}
+p2r77map2 <- readRDS(file = "~/scratch-data/neta-bccptac/data/prot-refseq-to-entrezgene-map.rds")
+```
+
+Get the entrez genes with GO mappings. 
+
+```{r}
+suppressMessages(library(org.Hs.eg.db))
+x <- org.Hs.egGO
+hs_feature_list <- function(db, eg) { 
+  mk <- mappedkeys(db)
+  xx <- as.list(db[eg[eg %in% mk]])
+}
+# Get the entrez gene identifiers that are mapped to a GO ID
+mapped_genes <- mappedkeys(x)
+entrezgene.qe.go <- as.character(p2r77map2$entrezgene[ p2r77map2$entrezgene %in% mapped_genes])
+leg2go <-  hs_feature_list(db = org.Hs.egGO, eg = entrezgene.qe.go) 
+```
+
+Map the entrez genes to GO biological process terms with some valid evidence (i.e. not "ND").
+
+```{r}
+library(foreach)
+leg2go_filtered <- foreach(got = leg2go, eg = names(leg2go)) %do% { 
+  bp_domain <- sapply(got, function(x) x[["Ontology"]]) == "BP"
+  #bp_domain <- TRUE
+  not_nd_domain <- sapply(got, function(x) x[["Evidence"]]) != "ND"
+  bp_got <- got[bp_domain & not_nd_domain]
+  sapply(bp_got, function(x) x[["GOID"]]) 
+}
+names(leg2go_filtered) <- names(leg2go)
+leg2go_filtered <- leg2go_filtered[sapply(leg2go_filtered, length) != 0]
+```
+
+Reverse the mapping to GO -> entrez gene and keep those mappings that have at least 15 but no more than 300 GO terms. 
+
+```{r}
+suppressMessages(library(topGO))
+go2eg <- inverseList(leg2go_filtered)
+#switch to refseq id because of graph id and to include all isoforms
+go2eg <- lapply(go2eg, function(x) as.character(p2r77map2$refseq[ p2r77map2$entrezgene %in% x ]))
+#remove duplicate entrez genes
+go2eg <- lapply(go2eg, function(x) x[!duplicated(x)])
+gosize <- sapply(go2eg, length)
+go2eg <- go2eg[ gosize >= 15 & gosize <= 300]
+#assure each go term has a list of non-duplicate ids
+stopifnot(all(sapply(go2eg, anyDuplicated) == 0))
+eg2go <- inverseList(go2eg)
+```
+
+
+Save the protein GO universe.
+
+```{r}
+saveRDS(go2eg, file = "~/repos/neta-bccptac/data/prot-go-bp-to-entrez-gene-list.rds")
+saveRDS(eg2go, file = "~/repos/neta-bccptac/data/prot-go-entrez-gene-to-bp-list.rds")
+```
+
+Clear the workspace for the RNA analysis. 
+
+```{r}
+rm(list = ls())
+```
+
+## RNA GO universe
+
+Get the entrez genes with GO mappings. 
+
+```{r}
+rnaset <- readRDS(file = "~/repos/neta-bccptac/data/rna-expression-set.rds")
+rna_entrez_ids <- featureNames(rnaset)
+library(IRanges)
+library(org.Hs.eg.db)
+hs_feature_list <- function(db, eg) { 
+  mk <- mappedkeys(db)
+  xx <- as.list(db[eg[eg %in% mk]])
+}
+leg2go <- hs_feature_list(db = org.Hs.egGO, eg = rna_entrez_ids)
+```
+
+
+Map the entrez genes to GO BP terms with some valid evidence (not "ND").
+
+```{r}
+library(foreach)
+leg2go_filtered <- foreach(got = leg2go, eg = names(leg2go)) %do% { 
+  bp_domain <- sapply(got, function(x) x[["Ontology"]]) == "BP"
+  #bp_domain <- TRUE
+  not_nd_domain <- sapply(got, function(x) x[["Evidence"]]) != "ND"
+  bp_got <- got[bp_domain & not_nd_domain]
+  sapply(bp_got, function(x) x[["GOID"]]) 
+}
+names(leg2go_filtered) <- names(leg2go)
+leg2go_filtered <- leg2go_filtered[sapply(leg2go_filtered, length) != 0]
+```
+
+Reverse the mapping to GO -> entrez gene and keep those mappings that have at least 15 but no more than 300 GO terms. 
+
+```{r}
+library(topGO)
+go2eg <- inverseList(leg2go_filtered)
+#remove duplicate entrez genes
+go2eg <- lapply(go2eg, function(x) x[!duplicated(x)])
+gosize <- sapply(go2eg, length)
+go2eg <- go2eg[ gosize >= 15 & gosize <= 300]
+#number of go terms satisfying conditions
+length(go2eg)
+#assure each go term has a list of non-duplicate ids
+stopifnot(all(sapply(go2eg, anyDuplicated) == 0))
+eg2go <- inverseList(go2eg)
+```
+
+Save the RNA GO universe. 
+
+```{r}
+saveRDS(go2eg, file = "~/repos/neta-bccptac/data/rna-go-bp-to-entrez-gene-list.rds")
+saveRDS(eg2go, file = "~/repos/neta-bccptac/data/rna-go-entrez-gene-to-bp-list.rds")
+```
+

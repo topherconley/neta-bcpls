@@ -1,0 +1,183 @@
+---
+title: "Comparative Network Analysis"
+author: "Chris Conley"
+date: "November 28, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load the different network analysis
+
+```{r}
+suppressMessages(library(igraph))
+pmap <- new.env()
+load(file = "~/scratch-data/neta-bccptac/neta/spacemap/prot/spacemap-neta-prot.RData", envir = pmap)
+rmap <- new.env()
+load(file = "~/scratch-data/neta-bccptac/neta/spacemap/rna/spacemap-neta-rna.RData", envir = rmap)
+psc <- new.env()
+load(file = "~/scratch-data/neta-bccptac/neta/scggm/scggm-neta.RData", envir = psc)
+```
+
+We need to match the RNA vertex names to the protein vertex names. Load the protein-RNA map. There are 280 protein nodes (including 30 isoforms) total that share a common vertex with RNA. 
+
+```{r}
+dc <- new.env()
+load(file = "~/scratch-data/neta-bccptac/data/data-cleaning-environment.RData", envir = dc)
+p2r <- dc$p2r77map2
+common_rna <- intersect(p2r$entrezgene, rmap$yy_node_attributes$id)
+sum(p2r$entrezgene %in% common_rna)
+```
+
+There are originally 1137 vertices in the RNA network with at least one edge. 
+
+```{r}
+vcount(rmap$ig)
+ecount(rmap$ig)
+```
+
+There are 189 unique RNA vertices with at least one edge that is represented among the protein network, which contribute to 212 total protein vertices when accounting for 23 additional isoforms represented.  First add these vertices with the protein isoform name. 
+
+```{r}
+#rna_ids with at least one edge
+rna_ids <- as_ids(V(rmap$ig)[type %in% "y"])
+rna_in_prot_index <-  rna_ids %in% p2r$entrezgene
+rna_ids_in_prot <- rna_ids[rna_in_prot_index]
+rna_to_update <- p2r[p2r$entrezgene %in% rna_ids_in_prot,]
+lrna_to_update <- split(x = rna_to_update$refseq, f = rna_to_update$entrezgene)
+i <- 1
+prot_to_add <- lrna_to_update[[i]][1]
+for(i in seq_along(lrna_to_update)) { 
+  #what rna vertex will be deleted
+  rna_to_del <- names(lrna_to_update)[i]
+  #the corresponding vertex sequence 
+  vi <- V(rmap$ig)[name %in% rna_to_del]
+  #number of isoforms to include and update
+  ntoup <- length(lrna_to_update[[i]])
+  
+  #vertex attributes to copy
+  vn <- vertex_attr_names(rmap$ig)
+  lva <- lapply(vn, function(nme) rep(vertex_attr(graph = rmap$ig, name = nme, index = vi),ntoup))
+  names(lva) <- vn
+  #change name of vertex for copied attributes
+  lva$name <- lrna_to_update[[i]]
+  #add to network
+  rmap$ig <- add_vertices(graph = rmap$ig, nv = ntoup, p2r = "p2r", attr = lva)
+
+  
+}
+```
+
+
+Verify that the new vertice replacements have been added. 
+
+```{r}
+vcount(rmap$ig)
+```
+
+Add the corresponding edges. 
+
+```{r}
+#i <- 98
+for(i in seq_along(lrna_to_update)) { 
+  res_long <- c()
+  #what rna vertex will be deleted
+  rna_to_del <- names(lrna_to_update)[i]
+  #the corresponding vertex sequence 
+  vi <- V(rmap$ig)[name %in% rna_to_del]
+  
+  ## add corresponding edges
+  
+  #set default edge list to long vector
+  ## c("a|b", "c|d") =====> c("a","b","c","d")
+  res <- as_ids(E(rmap$ig)[ inc(vi) ])
+  res_long <- unlist(strsplit(x = res, split = "|", fixed = T))
+  
+  replacement <- lrna_to_update[[i]][1]
+  to_replace <-  paste0("^", rna_to_del, "$")
+  res_long <- sub(pattern = to_replace, replacement = replacement, x = res_long)
+  # #replace first isofrom with other isoforms
+  
+  #### replace all other  RNA with their corresponding first isoform
+  for(j in seq_along(lrna_to_update)) {
+    to_replace <- names(lrna_to_update)[j]
+    to_replace <- paste0("^", to_replace, "$")
+    replacement <- lrna_to_update[[j]][1]
+    res_long <- sub(pattern = to_replace, replacement = replacement, x = res_long)
+  }
+  
+  #add in other isoforms for the current RNA-protein map
+  liso <- length(lrna_to_update[[i]])
+  if(liso > 1) {
+    to_replace <- lrna_to_update[[i]][1]
+    res_long <- c(res_long,as.vector(sapply(lrna_to_update[[i]][2:length(lrna_to_update[[i]])],
+                                            function (replacement) sub(pattern = to_replace, replacement = replacement, x = res_long))))
+  }
+  rmap$ig <- add_edges(graph = rmap$ig, edges = res_long)
+}
+```
+
+Delete the former RNA vertices that matched the protein isoforms. 
+
+```{r}
+isorig <- rmap$ig
+isorig <- delete_vertices(graph = isorig, v = V(isorig)[name %in% names(lrna_to_update)])
+vcount(isorig)
+ecount(isorig)
+```
+
+Be sure to update the edge type and the cis/trans status for the RNA network that has been relabeled with the protein-isoforms where possible. 
+
+```{r}
+library(spacemap)
+isorig <- setEdgeTypeAttr(isorig, "x", "y")
+#E(isorig)[edge_type %in% "x--y"]
+isorig <- setEdgeTypeAttr(isorig, "y", "y")
+#E(isorig)[edge_type %in% "y--y"]
+isorig <- setCisTransAttr(ig = isorig, et = c("x--y", "y--y"))
+#E(isorig)$cis_trans
+```
+
+
+Create an attribute indicating where the edge was inferred from. 
+
+
+```{r}
+isorig <- set_edge_attr(graph = isorig, name = "edge_source", value = "RNA")
+pmap$ig <- set_edge_attr(graph = pmap$ig, name = "edge_source", value = "protein")
+```
+
+
+```{r}
+library(igraph)
+#uig <- union(pmap$ig, psc$ig, isorig, byname = T)
+uig <- igraph::union(pmap$ig, isorig, byname = TRUE)
+
+edge_attr_names(uig)
+
+
+uc <- data.frame(c1 = vertex_attr(uig, name = c("cytoscape_1")),
+                 c2 = vertex_attr(uig, name = c("cytoscape_2")), 
+                 stringsAsFactors = F)
+#none are both missing
+stopifnot(!any(is.na(uc$c1) & is.na(uc$c2)))
+#merge the complementary information
+uc$merged <- ifelse(is.na(uc$c1), uc$c2, uc$c1)
+#merged does not have any missing
+stopifnot(!any(is.na(uc$merged)))
+uig <- set_vertex_attr(graph = uig, name = "cytoscape_merged", value = uc$merged)
+ucm <- data.frame(c1 = vertex_attr(uig, name = c("cytoscape_1")),
+                  c2 = vertex_attr(uig, name = c("cytoscape_2")),
+                  merged = vertex_attr(uig, name = c("cytoscape_merged")), 
+                  stringsAsFactors = F)
+#View(ucm)
+#ucm[which(ucm$c1 != ucm$c2),]
+#sum(!is.na(vertex_attr(uig, name = "p2r")))
+netadir <- "c:/Users/topher/Shared/scratch-data/neta-bccptac/neta/"
+write.graph(uig, file = file.path(netadir, "unified-prot-rna-boot-vote.graphml"), format = "graphml")
+
+```
+
+

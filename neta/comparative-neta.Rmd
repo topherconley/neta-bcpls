@@ -6,13 +6,17 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
+library(knitr)
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Load the different network analysis
+## Union of Protein and RNA networks
+
+Load the workspace from the protein and RNA networks analyses.
 
 ```{r}
-suppressMessages(library(igraph))
+suppressPackageStartupMessages(library(igraph))
+suppressPackageStartupMessages(library(spacemap))
 pmap <- new.env()
 load(file = "~/scratch-data/neta-bccptac/neta/spacemap/prot/spacemap-neta-prot.RData", envir = pmap)
 rmap <- new.env()
@@ -21,34 +25,65 @@ psc <- new.env()
 load(file = "~/scratch-data/neta-bccptac/neta/scggm/scggm-neta.RData", envir = psc)
 ```
 
-We need to match the RNA vertex names to the protein vertex names. Load the protein-RNA map. There are 280 protein nodes (including 30 isoforms) total that share a common vertex with RNA. 
+Set the output directory
 
 ```{r}
-dc <- new.env()
-load(file = "~/scratch-data/neta-bccptac/data/data-cleaning-environment.RData", envir = dc)
-p2r <- dc$p2r77map2
-common_rna <- intersect(p2r$entrezgene, rmap$yy_node_attributes$id)
-sum(p2r$entrezgene %in% common_rna)
+netadir <- "c:/Users/topher/Shared/scratch-data/neta-bccptac/neta/spacemap/union-prot-rna/"
 ```
 
-There are originally 1137 vertices in the RNA network with at least one edge. 
+
+Load the refseq-entrez ID mapping that allows us to find common vertices between protein and RNA networks, respectively. Refseq IDs are the primary accession for the protein vertices and entrez IDs are the primary accession for RNA vertices. 
 
 ```{r}
-vcount(rmap$ig)
-ecount(rmap$ig)
+p2r <- readRDS(file = "~/scratch-data/neta-bccptac/data/prot-refseq-to-entrezgene-map.rds")
+p2r$refseq <- as.character(p2r$refseq)
+p2r$entrezgene <- as.character(p2r$entrezgene)
 ```
 
-There are 189 unique RNA vertices with at least one edge that is represented among the protein network, which contribute to 212 total protein vertices when accounting for 23 additional isoforms represented.  First add these vertices with the protein isoform name. 
+The union of RNA and protein networks into one requires us to carefully handle overlapping vertices between them and account for isoforms. First, detail the distribution of bi-variate distribution of ID's that have at least one edge in the network versus those are singletons (out of network) for RNA and protein networks jointly. First we identify all IDs in and out of the RNA network, followed by protein network after converting from RefSeq to Entrez accessions where possible. 
 
 ```{r}
-#rna_ids with at least one edge
-rna_ids <- as_ids(V(rmap$ig)[type %in% "y"])
-rna_in_prot_index <-  rna_ids %in% p2r$entrezgene
-rna_ids_in_prot <- rna_ids[rna_in_prot_index]
-rna_to_update <- p2r[p2r$entrezgene %in% rna_ids_in_prot,]
+rids <- list(nin = as_ids(V(rmap$ig)[type %in% "y"]), nout = setdiff(rmap$yy_node_attributes$id, as_ids(V(rmap$ig)[type %in% "y"])))
+pids <- list(nin = as_ids(V(pmap$ig)[type %in% "y"]), nout = setdiff(pmap$yy_node_attributes$id, as_ids(V(pmap$ig)[type %in% "y"])))
+stopifnot(sum(sapply(pids, length)) == 1595)
+#converting to entrez gene ids where possible
+pids$eg_nin <- p2r$entrezgene[p2r$refseq %in% pids$nin]
+pids$eg_nout <- p2r$entrezgene[p2r$refseq %in% pids$nout]
+```
+
+Now form a list of vectors containing the four combinations of (in/out) for the RNA and protein networks overlap. The four combinations are RNA(in)/prot(in), RNA(in)/prot(out), RNA(out)/prot(in) and RNA(out)/prot(out). 
+
+```{r}
+lrp <- list(ripi = intersect(rids$nin, pids$eg_nin), 
+            ripo = intersect(rids$nin, pids$eg_nout), 
+            ropi = intersect(rids$nout, pids$eg_nin), 
+            ropo = intersect(rids$nout, pids$eg_nout))
+rpt <- matrix(data = sapply(lrp, length), nrow = 2,ncol = 2, byrow = T)
+colnames(rpt) <- c("RNA(in)/prot(in)", "RNA(in)/prot(out)")
+rownames(rpt) <- c(" RNA(out)/prot(in)", "RNA(out)/prot(out)")
+kable(x = rpt)
+kable(prop.table(rpt))
+```
+
+With respect to taking the union of both networks, those vertices in RNA(in)/prot(in) will need to replace the RNA entrez ID with each Refseq ID isoform mapping because of the possibility of multiple isoforms needing to be represented. We duplicate the original edge structure within the RNA network for each isoform also  encountered in the protein network. Here we identify the distribution of isoform count for  RNA(in)/prot(in) vertices. 
+
+```{r}
+isotab <- table(pids$eg_nin[pids$eg_nin %in% lrp$ripi])
+table(isotab)
+```
+
+We note the original RNA network vertex and edge count. 
+
+```{r}
+rna_orig_vertex_number <- vcount(rmap$ig)
+rna_orig_edge_number <- ecount(rmap$ig)
+```
+Now replace  the RNA entrez ID with each Refseq ID isoform in the RNA network (all 179).
+
+```{r}
+rna_to_update <- p2r[p2r$entrezgene %in% lrp$ripi,]
 lrna_to_update <- split(x = rna_to_update$refseq, f = rna_to_update$entrezgene)
-i <- 1
-prot_to_add <- lrna_to_update[[i]][1]
+saveRDS(rna_to_update, file = "~/scratch-data/neta-bccptac/neta/rna-overlap.rds")
 for(i in seq_along(lrna_to_update)) { 
   #what rna vertex will be deleted
   rna_to_del <- names(lrna_to_update)[i]
@@ -65,22 +100,19 @@ for(i in seq_along(lrna_to_update)) {
   lva$name <- lrna_to_update[[i]]
   #add to network
   rmap$ig <- add_vertices(graph = rmap$ig, nv = ntoup, p2r = "p2r", attr = lva)
-
-  
 }
 ```
 
 
-Verify that the new vertice replacements have been added. 
+Verify that the new vertix replacements have been added. 
 
 ```{r}
-vcount(rmap$ig)
+vcount(rmap$ig) - rna_orig_vertex_number
 ```
 
-Add the corresponding edges. 
+Duplicate the corresponding edges of  RNA(in)/prot(in) vertices for each isoform. 
 
 ```{r}
-#i <- 98
 for(i in seq_along(lrna_to_update)) { 
   res_long <- c()
   #what rna vertex will be deleted
@@ -119,7 +151,7 @@ for(i in seq_along(lrna_to_update)) {
 }
 ```
 
-Delete the former RNA vertices that matched the protein isoforms. 
+Delete the  RNA(in)/prot(in) vertices with the entrez ID. 
 
 ```{r}
 isorig <- rmap$ig
@@ -140,9 +172,7 @@ isorig <- setCisTransAttr(ig = isorig, et = c("x--y", "y--y"))
 #E(isorig)$cis_trans
 ```
 
-
-Create an attribute indicating where the edge was inferred from. 
-
+Create an attribute indicating which network inferred an edge prior to taking the union of the two networks. 
 
 ```{r}
 isorig <- set_edge_attr(graph = isorig, name = "edge_source", value = "RNA")
@@ -150,14 +180,18 @@ pmap$ig <- set_edge_attr(graph = pmap$ig, name = "edge_source", value = "protein
 ```
 
 
+Take the union of the two networks using `igraph`; we shall call this the union network hereafter. Attributes with a `_1` suffix correspond to protein-network attributes and `_2` for RNA-network attributes. Together, the network-specific attributes can be used to analyze the union of the two networks. 
+
+
 ```{r}
 library(igraph)
 #uig <- union(pmap$ig, psc$ig, isorig, byname = T)
 uig <- igraph::union(pmap$ig, isorig, byname = TRUE)
+```
 
-edge_attr_names(uig)
+For visualizing in cytoscape, we need to provide a common vertex lable (either gene symbol or accession). 
 
-
+```{r}
 uc <- data.frame(c1 = vertex_attr(uig, name = c("cytoscape_1")),
                  c2 = vertex_attr(uig, name = c("cytoscape_2")), 
                  stringsAsFactors = F)
@@ -167,7 +201,9 @@ stopifnot(!any(is.na(uc$c1) & is.na(uc$c2)))
 uc$merged <- ifelse(is.na(uc$c1), uc$c2, uc$c1)
 #merged does not have any missing
 stopifnot(!any(is.na(uc$merged)))
+#add the attribute under two different names for historical compatibility reasons. 
 uig <- set_vertex_attr(graph = uig, name = "cytoscape_merged", value = uc$merged)
+uig <- set_vertex_attr(graph = uig, name = "cytoscape", value = uc$merged)
 ucm <- data.frame(c1 = vertex_attr(uig, name = c("cytoscape_1")),
                   c2 = vertex_attr(uig, name = c("cytoscape_2")),
                   merged = vertex_attr(uig, name = c("cytoscape_merged")), 
@@ -175,9 +211,221 @@ ucm <- data.frame(c1 = vertex_attr(uig, name = c("cytoscape_1")),
 #View(ucm)
 #ucm[which(ucm$c1 != ucm$c2),]
 #sum(!is.na(vertex_attr(uig, name = "p2r")))
-netadir <- "c:/Users/topher/Shared/scratch-data/neta-bccptac/neta/"
-write.graph(uig, file = file.path(netadir, "unified-prot-rna-boot-vote.graphml"), format = "graphml")
+```
 
+The union network requires a "type" attribute for the module identification to separate y's from x's and for GO-enrichment reporting.
+
+```{r}
+uig <- set_vertex_attr(uig, name = "type",
+                       index = V(uig)[type_1 %in% "y" | type_2 %in% "y"],
+                       value = "y")
+uig <- set_vertex_attr(uig, name = "type",
+                       index = V(uig)[type_1 %in% "x" | type_2 %in% "x"],
+                       value = "x")
+
+uig <- setEdgeTypeAttr(uig, "x", "y")
+uig <- setEdgeTypeAttr(uig, "y", "y")
+cyto_1_vals <- vertex_attr(graph = uig, name = "cyto_1", index = V(uig)[!is.na(cyto_1)])
+uig <- set_vertex_attr(uig, name = "cyto",
+                       index = V(uig)[!is.na(cyto_1)],
+                       value = cyto_1_vals)
+cyto_2_vals <- vertex_attr(graph = uig, name = "cyto_2", index = V(uig)[!is.na(cyto_2)])
+uig <- set_vertex_attr(uig, name = "cyto",
+                       index = V(uig)[!is.na(cyto_2)],
+                       value = cyto_2_vals)
 ```
 
 
+### Merge GO universes between RNA and protein sources. 
+
+For performing GO enrichment of the union network, overlapping GO terms and members of the GO terms need to be appropriately integrated so as to not to double-count members of GO terms in the hypergeometric test. 
+
+
+Read in the GO mappings prior to term-size filtering. 
+
+```{r}
+suppressPackageStartupMessages(library(topGO))
+rgo2eg <- readRDS("~/repos/neta-bccptac/data/no-len-trim-rna-go-bp-to-entrez-gene-list.rds")
+reg2go <- inverseList(rgo2eg)
+pgo2eg <- readRDS("~/repos/neta-bccptac/data/no-len-trim-prot-go-bp-to-entrez-gene-list.rds")
+peg2go <- inverseList(pgo2eg)
+```
+
+RNA(in)/prot(in) entrez IDs will be deleted from the RNA GO universe since they are no longer represented in the union network. Similarly, we will delete RNA(out)/prot(in) entrez IDs from the RNA GO universe since these are represented at least once by the prot(in) terms; and vice versa for the RNA(in)/prot(out) vertices. Finally, the RNA(out)/prot(out) group must delete IDsfrom either RNA or protein universe, but not both. 
+
+```{r}
+del_rna_members <- unlist(lrp[c("ripi", "ropi", "ropo")])
+reg2go_2 <- reg2go[setdiff(names(reg2go), del_rna_members)]
+del_prot_members <- pids$nout[pids$eg_nout %in%  lrp[["ripo"]] ]
+peg2go_2 <- peg2go[setdiff(names(peg2go), del_prot_members)]
+```
+
+Since this merger affects the size of membership for each GO term, we shall do a size filter (keeping only GO terms with at least 15 members but no more than 300) only after merging the GO universes. 
+
+```{r}
+#merge the universes
+ueg2go <- c(peg2go_2, reg2go_2)
+#group by GO term instead of by members
+ugo2eg <- inverseList(ueg2go)
+#size filtering
+ugosize <- sapply(ugo2eg, length)
+ugo2eg <- ugo2eg[ ugosize >= 15 & ugosize <= 300]
+ueg2go <- inverseList(ugo2eg)
+stopifnot(!anyDuplicated(names(ueg2go)))
+tmp <- union(names(ueg2go),V(uig)$name)
+```
+
+
+## CNA hub GO proportion
+
+Identify proportion of hits from CNA hub that share a common GO term membership with other hits of the CNA hub. 
+
+
+
+```{r}
+rgp <- readRDS(file =  file.path(netadir, "../rna/spacemap-rna-hub-neighborhood-go-modularity-obs.rds"))
+rgp$response <- "RNA-net"
+pgp <- readRDS(file =  file.path(netadir, "../prot/spacemap-prot-hub-neighborhood-go-modularity-obs.rds"))
+pgp$response <- "prot-net"
+
+ggdat <- rbind(rgp, pgp)
+ggdat2 <- data.frame(center = c(median(rgp$Proportion), median(pgp$Proportion)), 
+                     response = c("RNA-net", "prot-net"))
+#ggdat2
+ggdat$response <- factor(x = ggdat$response, levels = c("prot-net", "RNA-net"))
+ggdat2$response <- factor(x = ggdat2$response, levels = c("prot-net", "RNA-net"))
+library(ggplot2)
+library(scales)
+#convert to percentages
+ggdat2$center <- ggdat2$center*100
+ggdat$Percentage <- ggdat$Proportion*100
+
+ggplot(data = ggdat, aes(x = log2(Out_Degree), y = Percentage, colour = response)) +
+  geom_point(size = 2) + theme_bw() + ylab("% of nodes having a GO-neighbor") + 
+  xlab("log2(out degree of CNA hub)") +
+  geom_hline(data = ggdat2, aes(yintercept = center, colour = response))  + 
+  scale_y_continuous(breaks = pretty_breaks(10)) +
+  scale_x_continuous(breaks = pretty_breaks(10)) + 
+  scale_color_brewer(type = "qual")
+ggsave(filename = "c:/Users/topher/Shared/Dropbox/Chris_Conley/ms-spacemap/figures/go-pair-per-cna-hub-scatterplot.eps",
+       width = 4, height = 4, units = "in", dpi = 350)
+ggplot(data = ggdat, aes(x = response, y = Percentage, colour = response)) +
+  geom_boxplot(notch = F) + theme_bw() + geom_jitter(size =2) + 
+  #ylab("% of nodes having a GO-neighbor")  + 
+  ylab(expression(atop("% of nodes with GO-neighbor(s)", "in  CNA neighborhood"))) + 
+  xlab("Network") + 
+  scale_y_continuous(breaks = pretty_breaks(10))  + 
+  theme(legend.position="none") #+ 
+  #scale_color_brewer(type = "qual")
+ggsave(filename = "c:/Users/topher/Shared/Dropbox/Chris_Conley/ms-spacemap/figures/go-pair-per-cna-hub-boxplot.eps",
+       width = 4, height = 4.5, units = "in", dpi = 350)
+```
+
+
+
+```{r}
+hgp <- hubGOproportion(uig, ugo2eg)
+xlsx::write.xlsx(x = hgp, file = file.path(netadir, "spacemap-union-hub-neighborhood-go-modularity.xlsx"), row.names = F)
+saveRDS(object = hgp, file = file.path(netadir, "spacemap-union-hub-neighborhood-go-modularity-obs.rds"))
+obs_go_prop <- mean(hgp[,"Proportion"])
+obs_go_prop
+#plot(log(hgp$Out_Degree), hgp$Proportion)
+```
+
+
+## GO-enriched module discovery
+
+Obtain network modules using the `Girvan-Newman` algorithm for clust
+
+```{r}
+cebout <- cebModules(uig, glb = 15, prefix = "U")
+uig <- cebout$ig
+lmods <- cebout$module_list
+yy_lmods <- cebout$yy_module_list
+ceb <- cebout$community_obj
+cross_edges <- crossing(communities = ceb, graph = uig)
+cross_edges2 <- names(cross_edges)[cross_edges]
+cross_edge_tab <- splitEdgeVector(cross_edges2, uig)
+```
+
+
+Add in the singleton vertices (those without any edge) to a temporary network used to make an appropriate GO background in the hypergeometric test. 
+
+```{r}
+#number of singleton nodes =  (total RNA nodes + total protein nodes - overlap between RNA and protein) - (total union RNA and protein)
+n_singletons <- (vcount(rmap$igy) + vcount(pmap$igy) - sum(sapply(lrp, length))) - (vcount(uig) - length(V(uig)[!(type %in% "y")]))
+igy <- add_vertices(graph = uig, nv = n_singletons)
+```
+
+
+Evaluate which GO terms enrich the protein-network modules. 
+
+```{r}
+modenrich <- moduleEnrichment(lmods = yy_lmods, go2eg = ugo2eg, igy = igy, fdr_thresh = 0.05)
+head(modenrich)
+```
+
+
+The P-value distribution is well behaved. 
+
+```{r}
+library(ggplot2)
+qplot(modenrich$pvalue) + xlab("P-value of Module Enrichment Analysis")
+```
+
+
+Format the module enrichment results for displaying in a table.
+
+```{r}
+minGO <- 5
+#undebug(renderModuleTable)
+modenrichtab <- renderModuleTable(uig, lmods, modenrich, minGO = minGO) 
+library(xtable)
+cap <- "GO-enriched modules (edge-betweeness) in spacemap protein-network."
+print(xtable(modenrichtab, display = c("d", "s", "s", "s", "s"), 
+             caption = cap, digits = -2),
+      include.rownames = FALSE, 
+      type = "latex", 
+      file = file.path(netadir, "spacemap-mod-enrichment-union-prot-rna.tex"))
+```
+
+
+```{r}
+union_attributes <- rbind(pmap$xy_yy_node_attributes, rmap$xy_yy_node_attributes)
+uig <- setGOTags(lmods = lmods, modenrich = modenrich, 
+                 ig = uig, go2eg = ugo2eg, info = union_attributes)
+```
+
+```{r}
+lmod_attr <- lapply(names(lmods), getModuleInfo,  
+                    ig = uig,
+                    go2eg = ugo2eg,
+                    lmods = lmods,
+                    modenrich = modenrich,
+                    info = union_attributes,
+                    cross_edge_tab = cross_edge_tab, 
+                    minGO = minGO)
+names(lmod_attr) <- names(lmods)
+  
+library(xlsx)
+nonull <- lapply(seq_along(lmod_attr), function(i) { 
+  write.xlsx(x = lmod_attr[[i]], 
+             file = paste0(netadir, "spacemap-modules-union-prot-rna.xlsx"), 
+             sheetName = names(lmod_attr)[i], 
+             row.names = FALSE, append = TRUE)})
+```
+
+
+Comparing overlapping GO term enrichment between separate RNA and protein networks. 
+
+```{r}
+intersect(rmap$modenrichtab$`GO Category`, pmap$modenrichtab$`GO Category`)
+```
+
+
+Export the protein-RNA union network into `graphml` format for Cytoscape analysis. 
+
+```{r}
+write.graph(uig, file = file.path(netadir, "unified-prot-rna-boot-vote.graphml"), format = "graphml")
+save.image(file = file.path(netadir, "spacemap-neta-union-prot-rna.RData"))
+```

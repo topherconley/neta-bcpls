@@ -63,6 +63,7 @@ go2eg <- inverseList(leg2go_filtered)
 go2eg <- lapply(go2eg, function(x) as.character(p2r77map2$refseq[ p2r77map2$entrezgene %in% x ]))
 #remove duplicate entrez genes
 go2eg <- lapply(go2eg, function(x) x[!duplicated(x)])
+saveRDS(go2eg, file = "~/repos/neta-bccptac/data/no-len-trim-prot-go-bp-to-entrez-gene-list.rds")
 gosize <- sapply(go2eg, length)
 go2eg <- go2eg[ gosize >= 15 & gosize <= 300]
 #assure each go term has a list of non-duplicate ids
@@ -123,6 +124,7 @@ library(topGO)
 go2eg <- inverseList(leg2go_filtered)
 #remove duplicate entrez genes
 go2eg <- lapply(go2eg, function(x) x[!duplicated(x)])
+saveRDS(go2eg, file = "~/repos/neta-bccptac/data/no-len-trim-rna-go-bp-to-entrez-gene-list.rds")
 gosize <- sapply(go2eg, length)
 go2eg <- go2eg[ gosize >= 15 & gosize <= 300]
 #number of go terms satisfying conditions

@@ -92,12 +92,20 @@ suppressMessages(library(xlsx))
 ```{r}
 netadir <- "c:/Users/topher/Shared/scratch-data/neta-bccptac/neta/spacemap/rna/"
 library(xtable)
-cap <- "Top CNA hubs of spaceMap rna-network."
-print(xtable(xhubtab, display  = c("d","s", "s", "d", "s", "s"), caption = cap),
+#Part of table  in section 4.3
+cap <- "Prioritized CNA hubs of \texttt{spaceMap RNA-net} in each row with the number of -cis and -trans edges emanating from CNA hub, potential number of -cis relationships for the Hub, and which genes are in -cis with the CNA hub."
+print(xtable(xhubtab[,c(1,5:7)], display  = c("d","s", "s", "d", "s"), caption = cap),
       include.rownames=FALSE,
       type = "latex", 
-      file = file.path(netadir, "spacemap-xhub-rna.tex"))
+      file = file.path(netadir, "spacemap-cna-hub-with-rna.tex"))
+#excel file
 xlsx::write.xlsx(x = xhubtab, file = file.path(netadir, "spacemap-xhub-rna.xlsx"))
+#supplementary section 
+capsup <- "Prioritized CNA hubs of \texttt{spaceMap RNA-net} in each row with gene coordinates, the number of -cis and -trans edges emanating from the CNA hub, potential number of -cis relationships for the Hub, which genes are in -cis with the CNA hub, and the mean (std. deviation) rank of CNA degree across 1000 bootstrap replications."
+print(xtable(xhubtab[,c(1,3:8)], display  = c("d","s", "d", "d","s", "d", "s", "s"), caption = capsup),
+      include.rownames=FALSE,
+      type = "latex", 
+      file = file.path(netadir, "spacemap-cna-hub-with-rna-supp.tex"))
 ```
 
 ## GO Enrichment
@@ -120,7 +128,7 @@ yy_lmods <- cebout$yy_module_list
 ceb <- cebout$community_obj
 cross_edges <- crossing(communities = ceb, graph = ig)
 cross_edges2 <- names(cross_edges)[cross_edges]
-cross_edge_tab <- splitEdgeVector(cross_edges2)
+cross_edge_tab <- splitEdgeVector(cross_edges2, ig)
 ```
 
 Report the proportion of edges which have both vertices in the same GO category. 
@@ -140,8 +148,10 @@ Identify the GO pair proportion for each CNA hub by considering any two response
 ```{r}
 hgp <- hubGOproportion(ig, go2eg)
 xlsx::write.xlsx(x = hgp, file = file.path(netadir, "spacemap-rna-cna-neighborhood-go-modularity.xlsx"), row.names = F)
-obs_go_prop <- weighted.mean(x = hgp$`Proportion of GO Pairs`, w = hgp$`Out Degree`)
+saveRDS(object = hgp, file = file.path(netadir, "spacemap-rna-hub-neighborhood-go-modularity-obs.rds"))
+obs_go_prop <- mean(hgp[,"Proportion"])
 obs_go_prop
+
 ```
 
 Evaluate the mean GO pair proportion under random graphs with fixed degree distribution. 
@@ -149,16 +159,34 @@ Evaluate the mean GO pair proportion under random graphs with fixed degree distr
 ```{r}
 yy <- rna_spmap$bv$ParCor + 0
 xy <- rna_spmap$bv$Gamma + 0
+# set.seed(58759)
+# if(file.exists(file.path(netadir, "go_100_prop.rds"))) { 
+#   rnd_go_prop <- readRDS(file.path(netadir, "go_100_prop.rds"))
+# } else { 
+#   rnd_go_prop <- replicate(n = 100, rndHubGoProportion(xy, yy, info = xy_yy_node_attributes, go2eg = go2eg))
+#   saveRDS(list(rnd = rnd_go_prop, obs = obs_go_prop), file = file.path(netadir, "go_100_prop.rds"))
+#   mean(rnd_go_prop)
+#   sd(rnd_go_prop)
+# }
+```
+
+```{r}
 set.seed(58759)
-if(file.exists(file.path(netadir, "go_100_prop.rds"))) { 
-  rnd_go_prop <- readRDS(file.path(netadir, "go_100_prop.rds"))
-} else { 
-  rnd_go_prop <- replicate(n = 100, rndHubGoProportion(xy, yy, info = xy_yy_node_attributes, go2eg = go2eg))
-  saveRDS(list(rnd = rnd_go_prop, obs = obs_go_prop), file = file.path(netadir, "go_100_prop.rds"))
-  mean(rnd_go_prop)
-  sd(rnd_go_prop)
+if(file.exists(file.path(netadir, "rna_net_rhgps_100.rds"))) {
+  rhgps <- readRDS(file.path(netadir, "rna_net_rhgps_100.rds"))
+} else {
+  rigs <-lapply(1:50, function(i) rndCGGraph(xy = xy, yy = yy, info =  xy_yy_node_attributes))
+  saveRDS(rigs, file = file.path(netadir, "rna_net_rnd_graphs_50.rds"))
+  lrhgps <- lapply(rigs, function(rig) { 
+    rhgp <- hubGOproportion(rig, go2eg)
+  })
+  rhgps <- do.call(what = rbind, args = lrhgps)
+  saveRDS(rhgps, file = file.path(netadir, "rna _net_rhgps_50.rds"))
+  colMeans(rhgps[,c("m1","m2","m3")])
+  apply(as.matrix(rhgps[,c("m1","m2","m3")]), 2, sd)
 }
 ```
+
 
 Evaluate which GO terms enrich the RNA-network modules. 
 
@@ -196,6 +224,8 @@ ig <- setGOTags(lmods = lmods, modenrich = modenrich,
 
 ```{r}
 lmod_attr <- lapply(names(lmods), getModuleInfo,  
+                    ig = ig,
+                    go2eg = go2eg,
                     lmods = lmods,
                     modenrich = modenrich,
                     info = xy_yy_node_attributes, 

@@ -4,7 +4,7 @@ These `R` notebooks illustrate the `spaceMap` model's network analysis toolkit i
 
 ## Analysis Outline 
 
-- Data cleaning
+- Data cleaning:
 The folder `clean-data` contains the preprocessing steps taken prior to model fitting. The data objects are stored in the `data` folder.
-- Network Analsis 
+- Network Analsis: 
 The folder `neta` contains multiple network analyses, the outcome of which  are currently under review. 

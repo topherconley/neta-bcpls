@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+
+
+
+<title>Network Analysis Toolkit for the spaceMap model</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/flatly.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/font-awesome-4.5.0/css/font-awesome.min.css" rel="stylesheet" />
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; background-color: #f8f8f8; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+pre, code { background-color: #f8f8f8; }
+code > span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+code > span.dt { color: #204a87; } /* DataType */
+code > span.dv { color: #0000cf; } /* DecVal */
+code > span.bn { color: #0000cf; } /* BaseN */
+code > span.fl { color: #0000cf; } /* Float */
+code > span.ch { color: #4e9a06; } /* Char */
+code > span.st { color: #4e9a06; } /* String */
+code > span.co { color: #8f5902; font-style: italic; } /* Comment */
+code > span.ot { color: #8f5902; } /* Other */
+code > span.al { color: #ef2929; } /* Alert */
+code > span.fu { color: #000000; } /* Function */
+code > span.er { color: #a40000; font-weight: bold; } /* Error */
+code > span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #000000; } /* Constant */
+code > span.sc { color: #000000; } /* SpecialChar */
+code > span.vs { color: #4e9a06; } /* VerbatimString */
+code > span.ss { color: #4e9a06; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #000000; } /* Variable */
+code > span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+code > span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+code > span.ex { } /* Extension */
+code > span.at { color: #c4a000; } /* Attribute */
+code > span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+code > span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+</head>
+
+<body>
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+  height: auto;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 60px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+
+.section h2 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+.section h3 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+.section h4 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+.section h5 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+.section h6 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+
+<div class="container-fluid main-container">
+
+<!-- tabsets -->
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+</script>
+
+<!-- code folding -->
+
+
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html"></a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">
+    <span class="fa fa-home"></span>
+     
+    Home
+  </a>
+</li>
+<li>
+  <a href="clean-data/data-processing.html">
+    <span class="fa fa-cube"></span>
+     
+    Data Structure
+  </a>
+</li>
+<li>
+  <a href="neta/prep-go-universes.html">
+    <span class="fa fa-database"></span>
+     
+    Gene Ontology
+  </a>
+</li>
+<li>
+  <a href="neta/neta-bcpls.html">
+    <span class="fa fa-lightbulb-o"></span>
+     
+    Network Analysis
+  </a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a>
+    <span class="fa fa-github"></span>
+     
+  </a>
+</li>
+<li>
+  <a href="https://github.com/topherconley/neta-bcpls"></a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">Network Analysis Toolkit for the spaceMap model</h1>
+
+</div>
+
+
+<p>Interpretation of high-dimensional biological networks can prove quite challenging without a proper set of tools to highlight their structure and functional meaning. We included a network analysis toolkit as part of the <a href="http://topherconley.github.io/spacemap/">spacemap package</a> to facilitate network interpretation with special interest in integrative genomic applications. Our toolkit enables:</p>
+<ul>
+<li>annotation of nodes (e.g. gene coordinates, functional description)</li>
+<li>identification of cis/trans regulatory information</li>
+<li>prioritization of hub nodes</li>
+<li>module analysis (community detection)</li>
+<li>pathway enrichment analysis (GO/KEGG)</li>
+</ul>
+<p>All these features of the network analysis are reported through structured tables and are easily incorporated into technical manuscripts in a variety of formats. Perhaps more importantly, the network analysis integrates the results into a network file that can be exported (e.g. <code>.graphml</code> format) to existing tools such as the <a href="http://www.cytoscape.org/what_is_cytoscape.html">Cytoscape ecosystem</a>. spaceMap is not just a model; rather it is a powerful tool for deriving meaning from integrative genomics data.</p>
+<div id="breast-cancer-proteogenomics-example" class="section level2">
+<h2>Breast Cancer Proteogenomics Example</h2>
+<p>The <code>R</code> notebooks on this site illustrate how to apply spaceMap’s network analysis toolkit. Leveraging data from the <a href="http://www.nature.com/nature/journal/v534/n7605/abs/nature18003.html">Breast Cancer Proteogenomics Landscape Study (BCPLS)</a>, we show how to clean the data, derive annotations, and ultimately layer biological meaning onto networks learned by the spaceMap model. This work builds upon the BCPLS by performing an integrative analysis of copy number alterations (CNA) in breast tumors with corresponding protein expressions. The outcome of the integrative analysis is a network (hereafter referred to as <code>prot-net</code>) revealing how CNA influence downstream protein-protein interactions of breast tumors. In addition to finding known amplifications and deletion signatures of CNA in breast cancer, we were able to link these CNA hubs to proteins enriched with cancer-related biological processes. As a matter of comparison, we also fit a separate network (herafter referred to as <code>RNA-net</code>) exploring how these same copy number alterations perturb mRNA–mRNA regulatory networks. The outcome of this analysis exemplifies the power of reconstructing networks from data and leveraging bioinformatics toolkits to provide meaningful context.</p>
+</div>
+<div id="network-analysis-outline" class="section level2">
+<h2>Network Analysis Outline</h2>
+<ul>
+<li><strong>Cleaning the <code>BCPLS</code> data</strong> requires multiple pre-processing steps prior to learning the network and interpreting it. Dimension reduction, missing value imputation, multi-colinearity management, are all importatnt to avoid model fitting failures. The <a href="clean-data/data-processing.html">Data Structure tab</a> highlights how to create <code>ExpressionSet</code> data structures for the various omic data profiles with corresponding metadata and biological annotation, which is in accordance with best practices of the Bioconductor community. The annotations are formatted specifically for the spaceMap network analysis toolkit.</li>
+<li>In order to understand the biological pathways that are perturbed by predictor nodes (e.g. CNA), the creation of a Gene Ontology (or KEGG) universe is essential. By associating individual genes with their higher order biological processses, we can perform pathway analysis on the network. We illustrate how to derive such a universe in the <a href="neta/prep-go-universes.html">Gene Ontology tab</a>.</li>
+<li>Deploying the network analysis toolkit is as simple as calling the <code>spacemap::neta</code> function. For now, there is one standard analysis that is implemented; however, the toolkit has an modular implementation, which makes it flexible to adapt the analysis to the future needs of users. The <a href="neta/neta-bcpls.html">Network Analysis tab</a> illustrates the input and output of <code>spacemap::neta</code> with respect to the cleaned BCPLS data.</li>
+</ul>
+<div id="additional-r-packages-for-analysis" class="section level3">
+<h3>Additional <code>R</code> packages for analysis</h3>
+<p>Reproduction of the network analysis will require installation of the following packages.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">## try http:// if https:// URLs are not supported
+<span class="kw">source</span>(<span class="st">&quot;https://bioconductor.org/biocLite.R&quot;</span>)
+BiocInstaller::<span class="kw">biocLite</span>()
+<span class="kw">biocLite</span>(<span class="kw">c</span>(<span class="st">&quot;Biobase&quot;</span>, <span class="st">&quot;topGO&quot;</span>, <span class="st">&quot;GenomicRanges&quot;</span>, <span class="st">&quot;org.Hs.eg.db&quot;</span>,
+           <span class="st">&quot;mygene&quot;</span>))
+<span class="kw">install.packages</span>(<span class="kw">c</span>(<span class="st">&quot;ggplot2&quot;</span>, <span class="st">&quot;data.table&quot;</span>, <span class="st">&quot;fpc&quot;</span>, 
+                   <span class="st">&quot;stringdist&quot;</span>))</code></pre></div>
+</div>
+</div>
+
+<p>Copyright &copy; 2017 Christopher Conley, Pei Wang, Jie Peng. All rights reserved.</p>
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

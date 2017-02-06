@@ -1,0 +1,27 @@
+name: "neta-bcpls"
+output_dir: "docs"
+navbar:
+  left:
+    - text: "Home"
+      icon: fa-home
+      href: index.html
+    - text: "Data Structure"
+      icon: fa-cube
+      href: clean-data/data-processing.html
+    - text: "Gene Ontology"
+      icon: fa-database
+      href: neta/prep-go-universes.html
+    - text: "Network Analysis"
+      icon: fa-lightbulb-o
+      href: neta/neta-bcpls.html
+  right:
+    - icon: fa-github
+    - href: https://github.com/topherconley/neta-bcpls
+output:
+  html_document:
+    theme: flatly
+    highlight: tango
+    include:
+      after_body: footer.html
+    
+ 

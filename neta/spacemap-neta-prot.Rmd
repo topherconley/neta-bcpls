@@ -5,15 +5,18 @@ output:
   html_notebook: default
 ---
 
+
+
 ### Feature attribute loading
 
-Load the proteogenomics data. 
+Load the proteogenomics data in the form of `ExpressionSet` objects.
 
 ```{r}
 suppressPackageStartupMessages(library(Biobase))
-rnaset <- readRDS(file = "~/repos/neta-bccptac/data/rna-expression-set.rds")
-protset <- readRDS(file = "~/repos/neta-bccptac/data/prot-expression-set.rds")
-cnaset <- readRDS(file = "~/repos/neta-bccptac/data/cna-expression-set.rds")
+datadir <-  "~/repos/neta-bcpls/data"
+rnaset <- readRDS(file = file.path(datadir, "rna-expression-set.rds"))
+protset <- readRDS(file = file.path(datadir, "prot-expression-set.rds"))
+cnaset <- readRDS(file = file.path(datadir,"cna-expression-set.rds"))
 ```
 
 Combine the feature attributes between the response (i.e. protein) and the predictors (i.e. CNA). 
@@ -32,16 +35,19 @@ Load the network analysis functions.
 
 ```{r}
 suppressMessages(library(igraph))
-source("~/repos/bioc_spacemap/R/networkAnalysis.R")
+#source("~/repos/bioc_spacemap/R/networkAnalysis.R")
+suppressMessages(library(spacemap))
 ```
 
 Import the Boot.vote fit as well as the degree distributions of the bootstrap replicates. 
 
 ```{r}
-prot_spmap <- readRDS(file = "~/scratch-data/cptac/rep/spacemap_prot_boot_vote.rds")
-ig<-  adj2igraph(YY = prot_spmap$bv$ParCor, 
-                 XY = prot_spmap$bv$Gamma, 
-                 info = xy_yy_node_attributes)
+moddir <- "~/repos/neta-bcpls/model-fits/"
+suppressMessages(library(Matrix))
+prot_spmap <- readRDS(file = file.path(moddir, "smap_prot_boot_vote.rds"))
+ig <- spacemap::adj2igraph(YY = prot_spmap$bv$ParCor, 
+                           XY = prot_spmap$bv$Gamma, 
+                           info = xy_yy_node_attributes)
 igy <- adj2igraph(YY = prot_spmap$bv$ParCor, info = yy_node_attributes, dropnull = F)
 #degree distribution of bootstrap replicates
 protbdeg <- readRDS(file = "~/scratch-data/cptac/rep/spacemap_prot_boot_degree.rds")

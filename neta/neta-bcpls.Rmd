@@ -1,0 +1,132 @@
+---
+title: "Network analysis with spacemap"
+output:
+  html_document:
+    theme: flatly
+    highlight: tango
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+knitr::opts_chunk$set(cache=TRUE)
+```
+
+## Load proteogenomics data and annotation
+
+Load the proteogenomics data in the form of `ExpressionSet` objects. *Note for users:* relative paths in this document assume your working directory is the same as this file within the [neta-bcpls](https://topherconley.github.io/neta-bcpls/) repository. 
+
+```{r}
+suppressPackageStartupMessages(library(Biobase))
+datadir <-  "../data/"
+protset <- readRDS(file = file.path(datadir, "prot-expression-set.rds"))
+cnaset <- readRDS(file = file.path(datadir,"cna-expression-set.rds"))
+```
+
+Combine the feature attributes between the response (i.e. protein) and the predictors (i.e. CNA). 
+
+```{r}
+yy_node_attributes <- featureData(protset)
+yy_node_attributes <- pData(yy_node_attributes)
+yy_node_attributes <- yy_node_attributes[,-10]
+xy_node_attributes <- featureData(cnaset)
+xy_node_attributes <- pData(xy_node_attributes)
+xy_yy_node_attributes <- rbind(xy_node_attributes, yy_node_attributes)
+rownames(xy_yy_node_attributes) <- NULL
+```
+
+Load the Protein GO universe, which was built in this [R markdown article](<>).
+  
+```{r}
+go2eg <- readRDS(file = file.path(datadir, 
+                                  "prot-go-bp-to-entrez-gene-list.rds"))
+```
+
+Load the network analysis functions. 
+
+```{r}
+suppressMessages(library(igraph))
+#source("~/repos/bioc_spacemap/R/networkAnalysis.R")
+suppressMessages(library(spacemap))
+suppressMessages(library(GenomicRanges))
+```
+
+## spacemap network: `prot-net`
+
+Import the Boot.vote fit as well as the degree distributions of the bootstrap replicates. 
+
+```{r}
+moddir <- "../model-fits/"
+suppressMessages(library(Matrix))
+smap_net <- readRDS(file = file.path(moddir, "smap_prot_boot_vote.rds"))
+names(smap_net) <- c("yy", "xy")
+smap_net$yy <- as.matrix(smap_net$yy)
+smap_net$xy <- as.matrix(smap_net$xy)
+smap_bdeg <- readRDS(file = file.path(moddir, "smap_prot_boot_degree.rds"))
+names(smap_bdeg) <- c("xy", "yy")
+```
+
+Apply the network analysis toolkit from spaceMap.
+
+```{r}
+neta_out <- neta(net = smap_net, bdeg = smap_bdeg,
+                 info = xy_yy_node_attributes, 
+                 go2eg = go2eg)
+```
+
+The network has been analyzed and returns a list of organized results through an `igraph` object and summary tables.  If we export the `igraph` network object to a `.graphml` format, this can be visualized in [Cytoscape](http://www.cytoscape.org/what_is_cytoscape.html) or other suppporting network analysis tools.
+
+```{r}
+#results directory
+resdir <- "../_results/"
+system(paste("mkdir", resdir))
+write.graph(neta_out$ig, file = file.path(resdir, "spacemap-prot-boot-vote.graphml"), 
+            format = "graphml")
+```
+
+### CNA hubs 
+
+The prioritized CNA hubs are organized in such a way to allow researchers to quickly understand which are the most important CNA hubs that have large effect on the protein expressions.
+
+```{r}
+kable(neta_out$xhubtab[1:6,], row.names = F, 
+      caption = "Top 6 CNA hubs from the CNA-protein network analysis.")
+```
+
+### GO Enrichment
+
+The module enrichment results are organized in such a way to quickly identify modules with the most interesting biological process enrichment and see what (if any) CNA hubs are part of the module. 
+
+```{r}
+kable(neta_out$modenrichtab, row.names = F)
+```
+
+Once these modules are identified, a researcher can find the module ID within the exported network object because it has the module membership information and Gene Ontology IDs associated with enriched nodes (see table below). One may quickly annotate and highlight these features in the network through tools like Cytoscape using appropriate filters. 
+
+```{r, echo = FALSE}
+net_attr <- igraph::vertex_attr_names(neta_out$ig)
+lnetattr <- lapply(net_attr, function(att) {
+  igraph::vertex_attr(graph = neta_out$ig, name = att)
+})
+nettab <- as.data.frame(do.call(cbind, lnetattr))
+names(nettab) <- net_attr
+nettab_show <- nettab[!is.na(nettab$GO_ID), c("cytoscape", "module", "GO_ID")]
+
+tmp <- lapply(as.character(nettab_show$GO_ID), strsplit, split = ";")
+ux <- unique(unlist(tmp[[1]]))
+nettab_show$GO_ID <- sapply(tmp, function(x)  {
+  ux <- unique(unlist(x)) 
+  paste0(ux[1:min(3,length(ux))], collapse  = ";") 
+})
+kable(head(nettab_show), row.names = F)
+```
+
+Future work will demonstrate some of the Cytoscape figures that can be generated from this network analysis toolkit. Click here to return [home](https://topherconley.github.io/neta-bcpls/index.html).
+
+#### Session Info
+
+```{r}
+sessionInfo()
+```
+

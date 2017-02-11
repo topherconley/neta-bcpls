@@ -19,6 +19,9 @@
 <script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
 <script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
 <script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
 <script src="site_libs/navigation-1.1/tabsets.js"></script>
 <link href="site_libs/font-awesome-4.5.0/css/font-awesome.min.css" rel="stylesheet" />
 
@@ -190,6 +193,101 @@ $(document).ready(function () {
 
 
 
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+  padding-left: 25px;
+  text-indent: 0;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row-fluid">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
 
 
 <div class="navbar navbar-default  navbar-fixed-top" role="navigation">
@@ -232,17 +330,16 @@ $(document).ready(function () {
     Network Analysis
   </a>
 </li>
-      </ul>
-      <ul class="nav navbar-nav navbar-right">
-        <li>
-  <a>
+<li>
+  <a href="https://github.com/topherconley/neta-bcpls">
     <span class="fa fa-github"></span>
      
+    Code
   </a>
 </li>
-<li>
-  <a href="https://github.com/topherconley/neta-bcpls"></a>
-</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
       </ul>
     </div><!--/.nav-collapse -->
   </div><!--/.container -->
@@ -257,7 +354,17 @@ $(document).ready(function () {
 </div>
 
 
-<p>Interpretation of high-dimensional biological networks can prove quite challenging without a proper set of tools to highlight their structure and functional meaning. We included a network analysis toolkit as part of the <a href="http://topherconley.github.io/spacemap/">spacemap package</a> to facilitate network interpretation with special interest in integrative genomic applications. Our toolkit enables:</p>
+<hr />
+<div id="quick-links" class="section level2">
+<h2>Quick Links</h2>
+<ul>
+<li><a href="https://topherconley.github.io/spacemap/">BCPLS Network Analysis in R Notebooks</a></li>
+<li><a href="https://topherconley.github.io/spacemap/">spacemap R package</a></li>
+</ul>
+</div>
+<div id="toolkit-features" class="section level2">
+<h2>Toolkit features</h2>
+<p>Interpretation of high-dimensional biological networks can prove quite challenging without a proper set of tools to highlight their structure and functional meaning. We included a network analysis toolkit as part of the <a href="http://topherconley.github.io/spacemap/">spacemap R package</a> to facilitate network interpretation with special interest in integrative genomic applications. Our toolkit enables:</p>
 <ul>
 <li>annotation of nodes (e.g. gene coordinates, functional description)</li>
 <li>identification of cis/trans regulatory information</li>
@@ -266,20 +373,21 @@ $(document).ready(function () {
 <li>pathway enrichment analysis (GO/KEGG)</li>
 </ul>
 <p>All these features of the network analysis are reported through structured tables and are easily incorporated into technical manuscripts in a variety of formats. Perhaps more importantly, the network analysis integrates the results into a network file that can be exported (e.g. <code>.graphml</code> format) to existing tools such as the <a href="http://www.cytoscape.org/what_is_cytoscape.html">Cytoscape ecosystem</a>. spaceMap is not just a model; rather it is a powerful tool for deriving meaning from integrative genomics data.</p>
-<div id="breast-cancer-proteogenomics-example" class="section level2">
-<h2>Breast Cancer Proteogenomics Example</h2>
-<p>The <code>R</code> notebooks on this site illustrate how to apply spaceMap’s network analysis toolkit. Leveraging data from the <a href="http://www.nature.com/nature/journal/v534/n7605/abs/nature18003.html">Breast Cancer Proteogenomics Landscape Study (BCPLS)</a>, we show how to clean the data, derive annotations, and ultimately layer biological meaning onto networks learned by the spaceMap model. This work builds upon the BCPLS by performing an integrative analysis of copy number alterations (CNA) in breast tumors with corresponding protein expressions. The outcome of the integrative analysis is a network (hereafter referred to as <code>prot-net</code>) revealing how CNA influence downstream protein-protein interactions of breast tumors. In addition to finding known amplifications and deletion signatures of CNA in breast cancer, we were able to link these CNA hubs to proteins enriched with cancer-related biological processes. As a matter of comparison, we also fit a separate network (herafter referred to as <code>RNA-net</code>) exploring how these same copy number alterations perturb mRNA–mRNA regulatory networks. The outcome of this analysis exemplifies the power of reconstructing networks from data and leveraging bioinformatics toolkits to provide meaningful context.</p>
 </div>
-<div id="network-analysis-outline" class="section level2">
-<h2>Network Analysis Outline</h2>
+<div id="example" class="section level2">
+<h2>Example</h2>
+<p>The <code>R</code> notebooks on this site illustrate how to apply spaceMap’s network analysis toolkit. Leveraging data from the <a href="http://www.nature.com/nature/journal/v534/n7605/abs/nature18003.html">Breast Cancer Proteogenomics Landscape Study (BCPLS)</a>, we show how to clean the data, derive annotations, and ultimately layer biological meaning onto networks learned by the spaceMap model. This work builds upon the BCPLS by performing an integrative analysis of copy number alterations (CNA) in breast tumors with corresponding protein expressions. The outcome of the integrative analysis is a network (hereafter referred to as <code>prot-net</code>) revealing how CNA influence downstream protein-protein interactions of breast tumors. In addition to finding known amplifications and deletion signatures of CNA in breast cancer, we were able to link these CNA hubs to proteins enriched with cancer-related biological processes. As a matter of comparison, we also fit a separate network (herafter referred to as <code>RNA-net</code>) exploring how these same copy number alterations perturb mRNA–mRNA regulatory networks. The outcome of this analysis exemplifies the power of reconstructing networks from data and leveraging bioinformatics toolkits to provide meaningful context.</p>
+<div id="outline" class="section level3">
+<h3>Outline</h3>
 <ul>
 <li><strong>Cleaning the <code>BCPLS</code> data</strong> requires multiple pre-processing steps prior to learning the network and interpreting it. Dimension reduction, missing value imputation, multi-colinearity management, are all importatnt to avoid model fitting failures. The <a href="clean-data/data-processing.html">Data Structure tab</a> highlights how to create <code>ExpressionSet</code> data structures for the various omic data profiles with corresponding metadata and biological annotation, which is in accordance with best practices of the Bioconductor community. The annotations are formatted specifically for the spaceMap network analysis toolkit.</li>
 <li>In order to understand the biological pathways that are perturbed by predictor nodes (e.g. CNA), the creation of a Gene Ontology (or KEGG) universe is essential. By associating individual genes with their higher order biological processses, we can perform pathway analysis on the network. We illustrate how to derive such a universe in the <a href="neta/prep-go-universes.html">Gene Ontology tab</a>.</li>
 <li>Deploying the network analysis toolkit is as simple as calling the <code>spacemap::neta</code> function. For now, there is one standard analysis that is implemented; however, the toolkit has an modular implementation, which makes it flexible to adapt the analysis to the future needs of users. The <a href="neta/neta-bcpls.html">Network Analysis tab</a> illustrates the input and output of <code>spacemap::neta</code> with respect to the cleaned BCPLS data.</li>
 </ul>
-<div id="additional-r-packages-for-analysis" class="section level3">
-<h3>Additional <code>R</code> packages for analysis</h3>
-<p>Reproduction of the network analysis will require installation of the following packages.</p>
+</div>
+<div id="r-environment" class="section level3">
+<h3>R environment</h3>
+<p>In addition to installing the <a href="https://topherconley.github.io/spacemap/">spacemap package</a>, reproduction of the BCPLS network analysis will require installation of the following R packages.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">## try http:// if https:// URLs are not supported
 <span class="kw">source</span>(<span class="st">&quot;https://bioconductor.org/biocLite.R&quot;</span>)
 BiocInstaller::<span class="kw">biocLite</span>()
@@ -290,9 +398,11 @@ BiocInstaller::<span class="kw">biocLite</span>()
 </div>
 </div>
 
-<p>Copyright &copy; 2017 Christopher Conley, Pei Wang, Jie Peng. All rights reserved.</p>
+<p>Copyright &copy; 2017 Regents of the University of California. All rights reserved.</p>
 
 
+</div>
+</div>
 
 </div>
 

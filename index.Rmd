@@ -4,9 +4,18 @@ output:
   html_document:
     theme: flatly
     highlight: tango
+    toc: true
+    toc_float: true
 ---
 
-Interpretation of high-dimensional biological networks can prove quite challenging without a proper set of tools to highlight their structure and functional meaning. We included a network analysis toolkit as part of the [spacemap package](http://topherconley.github.io/spacemap/) to facilitate network interpretation with special interest in integrative genomic applications. Our toolkit enables:
+-------------
+## Quick Links
+
+- [BCPLS Network Analysis in R Notebooks](https://topherconley.github.io/spacemap/)
+- [spacemap R package](https://topherconley.github.io/spacemap/)
+
+## Toolkit features
+Interpretation of high-dimensional biological networks can prove quite challenging without a proper set of tools to highlight their structure and functional meaning. We included a network analysis toolkit as part of the [spacemap R package](http://topherconley.github.io/spacemap/) to facilitate network interpretation with special interest in integrative genomic applications. Our toolkit enables:
 
 - annotation of nodes (e.g. gene coordinates, functional description)
 - identification of cis/trans regulatory information
@@ -16,19 +25,19 @@ Interpretation of high-dimensional biological networks can prove quite challengi
 
 All these features of the network analysis are reported through structured tables and are easily incorporated into technical manuscripts in a variety of formats. Perhaps more importantly, the network analysis integrates the results into a network file that can be exported (e.g. `.graphml` format) to existing tools such as the [Cytoscape ecosystem](http://www.cytoscape.org/what_is_cytoscape.html). spaceMap is not just a model; rather it is a powerful tool for deriving meaning from integrative genomics data. 
 
-## Breast Cancer Proteogenomics Example
+## Example
 
 The `R` notebooks on this site illustrate how to apply spaceMap's network analysis toolkit. Leveraging data from the [Breast Cancer Proteogenomics Landscape Study (BCPLS)](http://www.nature.com/nature/journal/v534/n7605/abs/nature18003.html), we show how to clean the data, derive annotations, and ultimately layer biological meaning onto networks learned by the spaceMap model. This work builds upon the BCPLS by performing an integrative analysis of copy number alterations (CNA) in breast tumors with corresponding protein expressions. The outcome of the integrative analysis is a network (hereafter referred to as `prot-net`) revealing how CNA influence downstream protein-protein interactions of breast tumors. In addition to finding known amplifications and deletion signatures of CNA in breast cancer, we were able to link these CNA hubs to proteins enriched with cancer-related biological processes. As a matter of comparison, we also fit a separate network (herafter referred to as `RNA-net`) exploring how these same copy number alterations perturb mRNA--mRNA regulatory networks. The outcome of this analysis exemplifies the power of reconstructing networks from data and leveraging bioinformatics toolkits to provide meaningful context. 
 
-## Network Analysis Outline 
+### Outline 
 
 - __Cleaning the `BCPLS` data__ requires multiple pre-processing steps prior to learning the network and interpreting it. Dimension reduction, missing value imputation,  multi-colinearity management, are all importatnt to avoid model fitting failures. The [Data Structure tab](clean-data/data-processing.html) highlights how to create `ExpressionSet` data structures for the various omic data profiles with corresponding metadata and biological annotation, which is in accordance with best practices of the Bioconductor community. The annotations are formatted specifically for the spaceMap network analysis toolkit. 
 - In order to understand the biological pathways that are perturbed by predictor nodes (e.g. CNA), the creation of a Gene  Ontology (or KEGG) universe is essential. By associating individual genes with their higher order biological processses, we can perform pathway analysis on the network. We illustrate how to derive such a universe in the [Gene Ontology tab](neta/prep-go-universes.html). 
 - Deploying the network analysis toolkit is as simple as calling the `spacemap::neta` function. For now, there is one standard analysis that is implemented; however, the toolkit has an modular implementation, which makes it flexible to adapt the analysis to the future needs of users. The [Network Analysis tab](neta/neta-bcpls.html) illustrates the input and output of `spacemap::neta` with respect to the cleaned BCPLS data. 
 
-### Additional `R` packages for analysis
+### R environment 
 
-Reproduction of the network analysis will require installation of the following packages. 
+In addition to installing the [spacemap package](https://topherconley.github.io/spacemap/), reproduction of the BCPLS network analysis will require installation of the following R packages. 
 
 ```{r, eval = FALSE}
 ## try http:// if https:// URLs are not supported

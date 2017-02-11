@@ -14,9 +14,9 @@ navbar:
     - text: "Network Analysis"
       icon: fa-lightbulb-o
       href: neta/neta-bcpls.html
-  right:
-    - icon: fa-github
-    - href: https://github.com/topherconley/neta-bcpls
+    - text: "Code"
+      icon: fa-github
+      href: https://github.com/topherconley/neta-bcpls
 output:
   html_document:
     theme: flatly

@@ -4,14 +4,12 @@ output:
   html_document:
     theme: flatly
     highlight: tango
-    toc: true
-    toc_float: true
 ---
 
 -------------
 ## Quick Links
 
-- [BCPLS Network Analysis in R Notebooks](https://topherconley.github.io/spacemap/)
+- [BCPLS Network Analysis in R Notebooks](https://github.com/topherconley/neta-bcpls)
 - [spacemap R package](https://topherconley.github.io/spacemap/)
 
 ## Toolkit features

@@ -7,13 +7,18 @@ output:
 ---
 
 -------------
+
 ## Quick Links
 
 - [BCPLS Network Analysis in R Notebooks](https://github.com/topherconley/neta-bcpls)
 - [spacemap R package](https://topherconley.github.io/spacemap/)
 
 ## Toolkit features
-Interpretation of high-dimensional biological networks can prove quite challenging without a proper set of tools to highlight their structure and functional meaning. We included a network analysis toolkit as part of the [spacemap R package](http://topherconley.github.io/spacemap/) to facilitate network interpretation with special interest in integrative genomic applications. Our toolkit enables:
+Interpretation of high-dimensional biological networks can prove quite challenging without a proper set of tools to highlight their structure and functional meaning. We included a network analysis toolkit as part of the [spacemap R package](http://topherconley.github.io/spacemap/) to facilitate network interpretation with special interest in integrative genomic applications. The flow chart below provides an overview of network analysis with spaceMap. 
+
+![](figures/flow-chart.png)
+
+Our toolkit enables:
 
 - annotation of nodes (e.g. gene coordinates, functional description)
 - identification of cis/trans regulatory information

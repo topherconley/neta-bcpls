@@ -2,25 +2,28 @@ name: "neta-bcpls"
 output_dir: "docs"
 navbar:
   left:
-    - text: "Home"
-      icon: fa-home
+    - text: "About"
       href: index.html
-    - text: "Data Structure"
-      icon: fa-cube
-      href: clean-data/data-processing.html
-    - text: "Gene Ontology"
-      icon: fa-database
-      href: neta/prep-go-universes.html
-    - text: "Network Analysis"
-      icon: fa-lightbulb-o
-      href: neta/neta-bcpls.html
-    - text: "Code"
+    - text: "BCPLS Data Analysis"
+      menu:
+        - text: "1. Data"
+          href: data.html
+        - text: "2. Model Fitting"
+          href: model_fits.html          
+        - text: "3. Annotation"
+          href: neta/prep-go-universes.html
+        - text: "4. Network Analysis"
+          href: neta/neta-bcpls.html
+        - text: "5. Visualization"
+          href: vis.html          
+    - text: "BCPLS Code"
       icon: fa-github
       href: https://github.com/topherconley/neta-bcpls
+    - text: "spacemap R package"
+      href: https://topherconley.github.io/spacemap/
 output:
   html_document:
-    theme: flatly
-    highlight: tango
+    theme: readable
     include:
       after_body: footer.html
     

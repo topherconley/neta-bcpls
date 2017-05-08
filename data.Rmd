@@ -1,0 +1,825 @@
+---
+title: "Proteogenomic data processing"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+knitr::opts_chunk$set(cache=TRUE)
+```
+
+## Introduction
+
+Integrative genomic data is not always available in a standard format and often requires some level of data cleaning and bioinformatic processing. The BCPLS data is no exception, which requires multiple pre-processing steps prior to learning the network and interpreting it. It is imperative to maintain the integrity of the Breast Cancer Proteogenomics Landscape Study (BCPLC) data through a transparent outline of every pre-processing step. Dimension reduction, missing value imputation, and reducing multi-colinearity, are specifically highlighted. Step [1. Data](clean-data/data-processing.html) in the analysis pipeline, details these (and other) data pre-processing techniques. 
+
+We also show how to construct a principled data structure called  an `ExpressionSet` for the various omic data profiles (e.g. CNA,RNA,protein). [Bioconductor's](https://bioconductor.org/packages/release/bioc/html/Biobase.html) `BioBase::ExpressionSet` data structure is part of the best practices of the Bioconductor community because it binds experimental metadata and biological annotations to the omic profiles. The annotations are formatted specifically for the spaceMap network analysis toolkit. This document serves as an example on how one might organize annotations and high-dimensional omic data prior to leveraging the [spacemap R package](https://topherconley.github.io/spacemap/index.html) for network learning. 
+
+*Note:* the initial data files are not included in the [neta-bcpls](https://topherconley.github.io/neta-bcpls/) repository to keep it as light-weight as possible in file sizes. If interested in reproducing this analysis with the initial data files, please contact the authors of spaceMap. 
+
+## Proteogenomic Data Provenance 
+
+We process 105 breast tumour samples that are sourced from a collaboration between The Cancer Genome Atlas (TCGA)  and the Clinical Proteomics Tumor Analysis Consortium (CPTAC). Assays on these 105 samples generated protein quantification, mRNA expression, and copy number alteration (CNA) forming a framework for proteogenomic analysis. Protein abundance profiles were downloaded from the supplementary table of [Breast Cancer Proteogenomics Landscape Study, Nature 2016](http://www.nature.com/nature/journal/v534/n7605/abs/nature18003.html) (BCPLS). The protein identification and quantitation data had been previously processed according to the Common Data Analysis Pipeline [(CDAP)](https://cptac-data-portal.georgetown.edu/cptac/aboutData/show?scope=dataLevels) of the of the Clinical Proteomics Tumor Analysis Consortium (CPTAC). The RNA-seq gene expression data set was pre-processed by  Michael Gatza, an author of BCPLS, where data has been normalized, log transformed, median centered, and filtered to contain only those genes present in >80% of samples. The CNA gains and losses from the aCGH data were called by the ['Fixed-order clustering' algorithm ](https://www.amazon.com/Statistical-Methods-CGH-Array-Analysis/dp/363911406X) from Pei Wang's group.
+
+There are 108 samples of breast cancer tumours, 3 of which are not included because they were normal controls. The meta-data associated with the CPTAC experiment is listed in the following data.frame: 
+
+```{r}
+basedir <- "~/scratch-data//neta-bccptac/data/"
+clin <- read.csv(file = file.path(basedir,"tumor-metadata.csv"), header = TRUE)
+kable(head(clin))
+```
+
+## RNA data processing
+
+Read in the RNA-seq expression data and the gene-level copy number variation (CNV) data. Although we will not use the gene-level CNV data, it is helpful for identifying sample names. 
+
+
+```{r}
+rna <- read.delim(file = file.path(basedir, "rna-seq-data-v1.txt"), header = TRUE, sep = "\t")
+cnv <- read.delim(file = file.path(basedir, "CNA-data-v1.txt"), header = TRUE, sep = "\t")
+```
+
+
+### Keep only 77  high quality samples
+
+There are only 77 high quality samples from the protein quantitation assays, which requires us to subset from the 105 RNA-seq assays. The high quality sample IDs are contained in Pei Wang's clustering of the aCGH data. Load this analysis in preparation to extract out the high quality sample IDs.
+
+```{r}
+pwf <- new.env()
+load(file = file.path(basedir, "cnv.data.80.RData"), envir = pwf)
+```
+
+
+In order to reformat the RNA-seq raw data to contain only 77 samples of sufficiently high quality, we must find the high quality sample identifier, which is only a substring contained within of the column names of Pei's aCGH analysis. Create an ID map to extract the high quality samples. 
+
+```{r}
+#drop the control, normal sample ids
+idMap <- data.frame(sampleID = clin$Sample[-c(106,107, 108)])
+#obtain the abbreviated sample ids 
+idMap$rnaOrder <- sub(pattern = ".", replacement = "-", fixed = TRUE,
+                      x = substr(x = colnames(rna)[2:length(colnames(rna))],
+                                 start = 6, stop = 12))
+#indicate which column indices 
+idMap$rnaIndex <- 2:length(colnames(rna))
+idMap$cnvOrder <- sub(pattern = ".", replacement = "-", fixed = TRUE,
+                      x = substr(x = colnames(cnv)[4:length(colnames(cnv))],
+                                 start = 6, stop = 12))
+idMap$cnvIndex <- 4:length(colnames(cnv))
+
+#assure sample columns for rna, cnv are the same order
+stopifnot(identical(idMap$rnaOrder, idMap$cnvOrder))
+#assure unique abreviated sample ids before using grep 
+stopifnot(!anyDuplicated(idMap$rnaOrder))
+stopifnot(!anyDuplicated(pwf$cnv.part))
+idMap$highQual <- FALSE
+highQualIndex <- sapply(pwf$cnv.part, function(x) { 
+  idx <- grep(x, idMap$rnaOrder) 
+  if (length(idx))
+    return(idx)
+  else 
+    return(NA)
+})
+# make sure no high quality samples are missing from search
+stopifnot(!any(is.na(highQualIndex)))
+idMap$highQual[highQualIndex] <- TRUE
+```
+
+After some processing, we have a data.frame indicating unique sample ID's, the index in which they appear in the `rna` and `cnv` variangles, as well as a logical indicating high quality samples.
+
+```{r}
+kable(head(idMap))
+```
+
+
+Record the high quality clinical information with samples sorted in the same order as the RNA samples. 
+
+```{r}
+clin.hq <- clin[match(idMap$rnaOrder[idMap$highQual], clin$Sample),]
+```
+
+Subset the high quality samples for further processing.
+
+```{r}
+rna.hq <- as.matrix(rna[,idMap$rnaIndex[idMap$highQual]])
+cnv.hq <- as.matrix(cnv[,idMap$cnvIndex[idMap$highQual]])
+rownames(cnv.hq) <- cnv$Gene.Symbol
+rownames(rna.hq) <- rna$CLID
+```
+
+### Inspect gene identifiers. 
+
+The gene symbols are not entirely unique, 12 of them having duplicates.  
+
+```{r}
+symbol <- unlist(lapply(strsplit(x = as.character(rna$CLID), split = "|", fixed = TRUE), function(x) x[1]))
+dupSymbolIndex <- duplicated(symbol)
+sum(dupSymbolIndex)
+```
+
+The entrez gene identifiers are unique.  We will use entrez gene IDs as the accession number in downstream applications and the gene symbols will be useful to retain for network visualizations. 
+
+```{r}
+entrezgene <- unlist(lapply(strsplit(x = as.character(rna$CLID), split = "|", fixed = TRUE), function(x) x[2]))
+dupEntrezGeneIndex <- duplicated(entrezgene)
+sum(dupEntrezGeneIndex)
+```
+
+### Filter RNA-seq expression  with high missing value rates
+
+Remove genes that exceed 30% of samples with missing values. 
+
+```{r}
+library(ggplot2)
+gnumNA <- sapply(seq_len(nrow(rna.hq)), function(i) sum(is.na(rna.hq[i,])))
+missingRateThresh <- 0.30
+qplot(gnumNA / ncol(rna.hq)*100, geom = "bar") + xlab("% missing samples per gene")
+```
+
+No gene needs to be filtered out on this criteria. In fact, the degree of missingness is low in the CPTAC RNA-seq dataset. In future processing of the data, missing values will be imputed with mean zero after standardization. 
+
+
+```{r}
+stopifnot(!any(gnumNA > missingRateThresh*ncol(rna.hq)))
+```
+
+### Keep high variance genes for network analysis
+
+Limited sample size, high biological heterogeneity, amd computational limits of `spaceMap` are compelling reasons to filter out genes that do not exhibit high dispersion across the samples. Restrict the analysis to mRNA that exceed the 90th percentile in standard deviation. 
+
+```{r}
+rna.sd <- apply(rna.hq, MARGIN = 1, FUN = sd, na.rm = TRUE)
+keepRNAIndex <- rna.sd > quantile(x = rna.sd, probs = 0.90)
+```
+
+Include some cis genes that are positive controls of the 17q12 amplicon that may not have passed the high variance filter. 
+
+```{r}
+rna_entrez <- unlist(lapply(strsplit(x = as.character(rownames(rna.hq)), split = "|", fixed = TRUE), function(x) x[2]))
+rna_symbol <- unlist(lapply(strsplit(x = as.character(rownames(rna.hq)), split = "|", fixed = TRUE), function(x) x[1]))
+rna_symbol <- ifelse(rna_symbol == "?", rna_entrez, rna_symbol)
+pc_index <- match(c("ERBB2", "ERBB4", "GRB7", "KRT17", "KRT19", "PNMT"), rna_symbol)
+final_keep_rna_index <- sort(union(pc_index, which(keepRNAIndex)))
+rnatofit <- rna.hq[final_keep_rna_index,]
+```
+
+The total number of mRNA expression considered for this analysis is `r nrow(rnatofit)`. Mean-center mRNA features and scale by the standard deviation. Follow this action by imputing mean-zero for missing values. 
+
+```{r}
+#transpose to be n x p dimension
+rnatofit_t <- t(rnatofit)
+#standardize features
+rnatofit_t <- scale(rnatofit_t)
+#zero-mean imputation for mRNA
+rnatofit_t[is.na(rnatofit_t)] <- 0
+rnatofit_std <- t(rnatofit_t)
+```
+
+### Form an `BioBase::ExpressionSet` for mRNA data. 
+
+Associate the correct sample meta data from TCGA with the mRNA expression data. 
+
+```{r}
+ltcga_data <- strsplit(x = colnames(rnatofit_std), split = ".", fixed = T)
+tcga_vars <- c("Project", "Location", "Study_Participant", "Sample_Type", "Portion", "Plate_Order", "Center")
+ltcga_data2 <- lapply(ltcga_data, function(l) {
+  names(l) <- tcga_vars
+  as.data.frame(t(data.frame(l)))
+})
+suppressPackageStartupMessages(library(data.table))
+tcga_sample_info <- rbindlist(ltcga_data2)
+kable(head(tcga_sample_info))
+```
+
+Combine this information with other clinical features previously imported. 
+
+```{r}
+pheno_data <- cbind(clin.hq, tcga_sample_info)
+#simplify sample id now that we have extracted the information encoded therein (see previous block)
+colnames(rnatofit_std) <- clin.hq$Sample
+row.names(pheno_data) <- colnames(rnatofit_std)
+```
+
+Provide additional information on the sample covariates in the form of meta data. 
+
+```{r}
+suppressPackageStartupMessages(library(Biobase))
+meta_data <- data.frame(labelDescription = c("Tissue Location - Study Participant", 
+                                             "iTRAC experiment number", 
+                                             "50 genes used to classify breast cancer subtypes", 
+                                             "Estrogen Receptor Status", 
+                                             "Progesterone Receptor Status",
+                                             "HER2 Subtype",
+                                             "Project",
+                                             "Location where the samples and the clincal metadata were collected", 
+                                             "Study Participant", 
+                                             "Sample and vial (01 = solid tumor, A = The first vial in a sequence of samples)", 
+                                             "order of portion in a sequence of 100 - 120 mg samples", 
+                                             "order of plate in a sequence of 96-well plates",
+                                             "Center that will receive the sample"), 
+                        row.names = colnames(pheno_data))
+pheno_data <- new("AnnotatedDataFrame",
+                 data=pheno_data, varMetadata=meta_data)
+pheno_data
+```
+
+#### Annotate mRNA features. 
+
+
+Identify the entrez gene and symbol features in the data. If a symbol is missing, replace it with its entrez gene id. 
+
+```{r}
+rna_entrez <- unlist(lapply(strsplit(x = as.character(rownames(rnatofit_std)), split = "|", fixed = TRUE), function(x) x[2]))
+rna_symbol <- unlist(lapply(strsplit(x = as.character(rownames(rnatofit_std)), split = "|", fixed = TRUE), function(x) x[1]))
+rna_symbol <- ifelse(rna_symbol == "?", rna_entrez, rna_symbol)
+```
+
+
+Import the Bioconductor package `org.Hs.eg.db` regarding the __homo sapien__  annotation.  Prepare a function to extract mapped key values from entrez id features in the requested database. 
+
+```{r}
+suppressPackageStartupMessages(library(org.Hs.eg.db))
+hs_feature_list <- function(db, eg) { 
+  mk <- mappedkeys(db)
+  xx <- as.list(db[eg[eg %in% mk]])
+}
+```
+
+Extract the chromosome, first start and last stop coordinates, as well as the strand of the mRNA features. Maintain these attributes in list format since some of the genes do not have complete information on the attributes (e.g. strand information missing).
+
+```{r}
+start_chrloc <- hs_feature_list(org.Hs.egCHRLOC, rna_entrez)
+rna_preattr <- list(chr = unlist(hs_feature_list(org.Hs.egCHR, rna_entrez)), 
+                   start =  sapply( hs_feature_list(org.Hs.egCHRLOC, rna_entrez), function(x) min(abs(x))),
+                   end =  sapply(hs_feature_list(org.Hs.egCHRLOCEND, rna_entrez), function(x) max(abs(x))), 
+                   strand = ifelse(sapply(start_chrloc, function(x) sign(min(x))) == 1L, "+", "-"))
+```
+
+
+Reformat the list into a data.frame that can be stored in an `Biobase::ExpressionSet` object. 
+
+```{r}
+suppressPackageStartupMessages(library(foreach))
+lrna_node_atttributes <- foreach(id = rna_entrez, sym = rna_symbol) %do% { 
+  id_attr <- sapply(rna_preattr, function(a) {
+    b <- a[names(a) %in% id] 
+    ifelse(length(b), b, NA)
+  })
+  names(id_attr) <- names(rna_preattr)
+  id_attr_df <- as.data.frame(t(data.frame(id_attr)),  stringsAsFactors = F, row.names = "")
+  id_attr_df$start <- as.integer(id_attr_df$start) 
+  id_attr_df$end <- as.integer(id_attr_df$end) 
+  id_attr_df$id <- id
+  id_attr_df$symbol <- sym
+  id_attr_df$cyto <- NA
+  id_attr_df$type <- "y"
+  id_attr_df$cytoscape <- sym
+  id_attr_df$chr <- paste0("chr", id_attr_df$chr)
+  id_attr_df[,c(5,1,2,3,6,7,4,8,9)]
+}
+rna_node_attributes <- as.data.frame(rbindlist(lrna_node_atttributes))
+rownames(rna_node_attributes) <- rna_node_attributes$id
+kable(head(rna_node_attributes), row.names = F)
+#evidence of limited attributes
+#rna_node_attributes[is.na(rna_node_attributes$strand),]
+```
+
+
+Create the final mRNA `ExpressionSet` object. 
+
+```{r}
+#subset high quality samples
+idMapHq <- idMap[idMap$highQual,]
+#assure sample order correct
+stopifnot(identical(as.character(clin.hq$Sample), idMapHq$rnaOrder),
+          identical(as.character(clin.hq$Sample), idMapHq$cnvOrder))
+suppressPackageStartupMessages(library(Biobase))
+rownames(rnatofit_std) <- rownames(rna_node_attributes)
+rnaset <- ExpressionSet(assayData = rnatofit_std, 
+                        phenoData = pheno_data,
+                        featureData =  AnnotatedDataFrame(data = rna_node_attributes))
+rnaset
+```
+
+## Protein Quantitation Processing
+
+The protein quantitation data contains the 77 high quality samples plus a few normal tissue samples. The data has been normalized and missing data has been filtered away previously. Read in the data. 
+
+```{r}
+prot <- read.delim(file = file.path(basedir, "proteome-ratio-norm-noNA-unimodal-edit-header.gct"), header = TRUE, sep = "\t")
+#exclude 3 normal control samples
+prot <- prot[,-c((ncol(prot) - 2):ncol(prot))]
+```
+
+Reformat the sample-level ids from the protein file to match that found in the clinical meta data file. 
+
+```{r}
+pid <- gsub(pattern = ".", replacement = "-", fixed = TRUE,
+            x = substr(x = colnames(prot)[3:length(colnames(prot))],
+                       start = 1, stop = 7))
+head(pid)
+```
+
+Duplicate sample IDs exist, which correspond to technical replicates. There are three sample ids with two technical replicates. 
+
+
+```{r}
+dupids <- pid[which(duplicated(pid))]
+dupids
+```
+
+Identify the technical replicates. 
+
+```{r}
+#extract an extended id including the technical replicate id.
+pid2 <- gsub(pattern = ".", replacement = "-", fixed = TRUE, 
+             x = substr(x = colnames(prot)[3:length(colnames(prot))], start =  1, stop = 10))
+#assure there is not duplicates among extended id
+stopifnot(!anyDuplicated(pid2))
+techreps <- sapply(dupids, function(di) pid2[grep(di, pid2)])
+rownames(techreps) <- paste0("replicate-", 1:2)
+kable(techreps)
+```
+
+Obtain the corresponding technical replicate indices in the extended protein sample ID variable `pid2`. 
+
+```{r}
+trepids <- sapply(dupids, function(pat) grep(pattern = pat, x = pid2))
+```
+
+The correlation between technical replicates is sufficiently high. We replace each technical replicate measurements with the average. 
+
+```{r}
+tcors <- vector(mode = "numeric", length = 3)
+avgtechreps <- matrix(data = NA, nrow = nrow(prot), ncol = 3)
+colnames(avgtechreps) <- colnames(trepids)
+rownames(avgtechreps) <- rownames(prot)
+library(ggplot2)
+for(i in 1:3) {
+  trep <- prot[,trepids[,i] + 2L]
+  avgtechreps[,i] <- rowMeans(trep)
+  prot[,trepids[,i] + 2L] <- avgtechreps[,i]
+  tcors[i] <- cor(trep[,1], trep[,2])
+  print(qplot(x = trep[,1], y  = trep[,2]) + geom_point() + 
+          xlab("replicate 1")  + ylab("replicate 2") + theme_bw() + 
+           annotate("text", x = -5, y = 5, label =  paste0("Correlation: ", round(tcors[i], 4))))
+}
+```
+
+The idMap object contains all 105 sample ids, excluding the 3 control samples, and indicates which is called a sufficiently high quality sample. Subset the 77 high quality samples. Assure the high quality samples agree between protein, CNA and RNA. The order of the samples for proteins does not natively match the RNA and CNA, which will be fixed here.
+
+```{r}
+#remove duplicate protein sample ids
+pidnodups <- pid[!duplicated(pid)]
+#assure high quality samples agree between protein,rna,cna
+stopifnot(!length(setdiff(pidnodups, idMapHq$cnvOrder)))
+#change the order of the protein sample columns
+idMapHq$protOrder <- pidnodups[match(idMapHq$cnvOrder, pidnodups)]
+```
+
+Subset the high quality samples from the original import of the protein quantitation data.
+
+```{r}
+#pid
+prot_hq <- prot[,c(1,2, match(idMapHq$protOrder, pid) + 2L)]
+#assure ourselves that the sample ids match in the correct order of the protein expression matrix 
+tmp <- gsub(pattern = ".", replacement = "-", fixed = TRUE,
+                      x = substr(x = colnames(prot_hq)[3:length(colnames(prot_hq))],
+                                 start = 1, stop = 7))
+stopifnot(identical(tmp, idMapHq$cnvOrder))
+stopifnot(identical(tmp, idMapHq$rnaOrder))
+stopifnot(identical(tmp, idMapHq$protOrder))
+#match the simplified sample names now that we order has been assured. 
+colnames(prot_hq)[3:length(colnames(prot_hq))] <- tmp
+```
+
+Filter out all proteins but those that have variance in the top 20%. 
+
+```{r}
+ed <- as.matrix(prot_hq[,3:ncol(prot_hq)])
+#initial feature information
+fd <-  data.frame( RefSeqProteinID = prot_hq[,2], description = prot_hq[,1], 
+                   row.names = prot_hq[,2])
+protallset <- ExpressionSet(assayData = ed, 
+                         phenoData = pheno_data,
+                         featureData = AnnotatedDataFrame(data = fd))
+pexp <- exprs(protallset)
+#no missing proteins
+stopifnot(!any(is.na(pexp)))
+sd_pexp <- apply(X = pexp, MARGIN = 1, FUN = sd)
+keep_prot_index <- sd_pexp > quantile(x = sd_pexp, probs = 0.80)
+protsdf <- protallset[which(keep_prot_index),]
+protsdf
+```
+
+As seen in the `ExpressionSet object`, we have filtered out samples and protein features, added the phenotypic data, but have yet to add gene coordinates of the feature level information. 
+
+### Add gene coordinates of the protein features 
+
+Since the phenotypic data for the samples has been prepared earlier, arrange to annotate the protein features. 
+
+```{r}
+suppressPackageStartupMessages(library(Biobase))
+suppressPackageStartupMessages(library(mygene))
+p2r77map <- queryMany(qterms = featureNames(protsdf), scopes = "refseq",
+                      fields = c("entrezgene", "symbol"))
+p2r77map2 <- data.frame(refseq = p2r77map@listData$query, entrezgene = as.character(p2r77map@listData$entrezgene),
+                        symbol = p2r77map@listData$symbol, stringsAsFactors = FALSE)
+```
+
+
+```{r, eval = FALSE, echo = FALSE}
+#pre-computed matches new version
+#p2r77map3 <- readRDS(file = "~/scratch-data/cptac/preprocess/cptac-qen77-p2rmap.rds")
+#identical(p2r77map2$refseq, as.character(p2r77map3$refseq))
+#identical(p2r77map2$entrezgene, as.character(p2r77map3$entrezgene))
+#p2r77map2 <- p2r77map3
+```
+
+The RefSeq ID's of the protein features is non-missing and unique. 
+
+```{r}
+stopifnot(!any(is.na(p2r77map2$refseq)))
+stopifnot(!any(duplicated(p2r77map2$refseq)))
+```
+
+On the other hand, some of the entrez gene ID's are missing. 
+
+```{r}
+missing_entrez_gene_ids <- p2r77map2$refseq[is.na(p2r77map2$entrezgene)]
+length(missing_entrez_gene_ids)
+```
+
+And duplication of entrez gene ID implies there are 194 isoforms. 
+
+```{r}
+sum(duplicated(p2r77map2$entrezgene))
+```
+
+Identify the protein features that are not missing entrez gene identifiers so that we can find their gene coordinates. List the isoforms for each of the 1400 features that ought to have gene coordinates. 
+
+```{r}
+p2r77map3 <- p2r77map2[!is.na(p2r77map2$entrezgene),]
+isoforms <- split(p2r77map3$refseq, f = as.factor(p2r77map3$entrezgene))
+#unique entrez gene identifiers
+egu <- names(isoforms)
+```
+
+Add the gene coordinate information as in the mRNA case where we have information available.
+
+```{r}
+get_protein_gene_coords <- function(egu, isoforms) { 
+  #find gene coordinate information for each unique entrez gene identifier
+  yyids <- egu
+  yy_chr <- hs_feature_list(org.Hs.egCHR, yyids)
+  #assign to X
+  yy_chr[[which(sapply(yy_chr, length) > 1)]] <- "X"
+  yy_chr <- unlist(yy_chr)
+  start_chrloc <- hs_feature_list(org.Hs.egCHRLOC, yyids)
+  #get minimum start site
+  min_start_chrloc <- sapply(start_chrloc, function(x) min(abs(x)))
+  #strand information
+  yy_strand <- ifelse(sapply(start_chrloc, function(x) sign(min(x))) == 1L, "+", "-")
+  #get maximum end site
+  end_chrloc <- hs_feature_list(org.Hs.egCHRLOCEND, yyids)
+  max_start_chrloc <- sapply(end_chrloc, function(x) max(abs(x)))
+  #get symbols
+  yy_symbols <- unlist(hs_feature_list(org.Hs.egSYMBOL, yyids))
+  
+  #for each isoform provide gene coordinate information
+  library(foreach)
+  yy_node_attributes <- foreach(isos = isoforms, eg = names(isoforms), .combine= 'rbind') %do% { 
+    #if symbol does not exist for isoform, provide refseq id
+    if (is.na(yy_symbols[eg])) { 
+      cys <- isos 
+    } else { 
+      cys <- yy_symbols[eg]
+    }
+    data.frame(id = isos, 
+               chr = paste0("chr", yy_chr[eg]),
+               start = min_start_chrloc[eg],
+               end = max_start_chrloc[eg],
+               symbol = yy_symbols[eg],
+               cyto = NA,
+               cytoscape = cys, 
+               strand = yy_strand[eg],
+               type = "y", 
+               stringsAsFactors = FALSE, 
+               row.names = NULL)
+  } 
+  stopifnot(!any(is.na(yy_node_attributes$id)))
+  
+  #add missing feature values for those protein features that do not have gene coordinates
+  missing_feats <- data.frame(id = missing_entrez_gene_ids, 
+                              chr = NA,
+                              start = NA,
+                              end = NA,
+                              symbol = NA,
+                              cyto = NA,
+                              cytoscape = missing_entrez_gene_ids, 
+                              strand = NA,
+                              type = "y", 
+                              stringsAsFactors = FALSE, 
+                              row.names = NULL)
+  yy_node_attributes <- rbind(yy_node_attributes,missing_feats)
+  #sort to match the feature order of the expression data
+  yy_node_attributes[match(p2r77map2$refseq, yy_node_attributes$id),]
+}
+prot_gene_coordinates <- get_protein_gene_coords(egu, isoforms)
+rownames(prot_gene_coordinates) <- prot_gene_coordinates$id
+kable(head(prot_gene_coordinates), row.names = F)
+```
+We now form the final `ExpressionSet` for the protein quantitation data. Be sure to mean-center protein features and scale by the standard deviation.
+
+```{r}
+tmp <- pData(featureData(protsdf))
+prot_node_attributes <- prot_gene_coordinates[match(tmp$RefSeqProteinID, prot_gene_coordinates$id),]
+prot_node_attributes$description <- tmp$description
+protset_no_std <- ExpressionSet(assayData = exprs(protsdf), 
+                                phenoData = pheno_data,
+                                featureData = AnnotatedDataFrame(data =prot_node_attributes))
+#n x p format
+prot_expr_t <- t(exprs(protsdf))
+#standardize and return to p x n format
+prot_expr_std <- t(scale(prot_expr_t))
+protset <- ExpressionSet(assayData = prot_expr_std, 
+                         phenoData = pheno_data,
+                         featureData = AnnotatedDataFrame(data =prot_node_attributes))
+```
+
+## Process the Copy Number Alteration data. 
+
+In the copy number alteration data, we found that even after processing with the 'Cluster along chromosomes algorithm' (CLAC), there were still groupings of highly-correlated copy number alteration intervals (CNA). We seek to further cluster these CNA so that the extreme multicolinearity does not render the multivariate regression unstable. 
+
+### Multicolinearity detection of Copy Number Alteration Intervals
+
+We will use a density-based clustering algorithm because it has a number of virtues: 
+
++ **Was developed for spatial correlation clustering of database records and extends well to CNA application.**
++ **No a priori knowledge of number of clusters.**
++ **Allows for noise clusters which corresponds to independent random variables.**
++ Scales to high dimension (fast).
++ The distance function: 1 - |Correlation(X, Y)| is well-defined for multicolinearity detection.
++  Clear Parametric Behavior: Episilon Parameter is very intuitive for defining how multicolinear variables are. `MinPnts` Parmater set to 2 to find even small blocks of multicolinearity.
+
+
+The data has been previously loaded in the `pwf` environment. Create a temporary matrix `X` to store the CNA data. 
+
+
+```{r}
+rownames(pwf$cnv.data) <- pwf$cnv.pos$Cyto
+X <- t(pwf$cnv.data)
+dim(X)
+```
+
+Match the samples order to that of the protein and mRNA data. 
+
+```{r}
+sidx <- match(idMap$cnvOrder[idMap$highQual], substring(colnames(pwf$cnv.data), 6, 12))
+X <- X[sidx,]
+```
+
+Assure ourselves again that the sample names match up now that we are working with the CNA output from CLAC. 
+
+```{r}
+cna_sample_names <-  substring(colnames(pwf$cnv.data), 6, 12)[sidx]
+rna_sample_names <-  sampleNames(rnaset)
+stopifnot(identical(cna_sample_names, rna_sample_names))
+```
+
+Many variables have the same cytoband interval names.  
+
+```{r}
+sum(duplicated(colnames(X)))
+```
+
+Load the `fpc` package for using the `dbscan` algorithm. Define the dissimilarity to be `1 - minus Correlation`. 
+
+```{r}
+library(fpc)
+dR <- 1 - abs(cor(X))
+hist(dR[upper.tri(dR)], col = "#31a354", xlab = "Multicolinearity dissimilarity (|1 - cor(X,Y)|)", main = "")
+```
+
+We require a minimally small cluster of size 2 and a `reacheablility` radius of `1e-3`. 
+
+```{r}
+clout <- dbscan(data = dR, MinPts = 2, eps = 1e-3, method = "dist")
+```
+
+The distribution on cluster size shows that most CNA  are classified as sufficiently distinct from other CNA. This is desired behavior. Most extreme colinearity cases are limited to small clusters. 
+
+```{r}
+barplot(table(table(clout$cluster)[]), col = "#31a354", xlab = "Cluster Size", ylab = "Frequency", main = "")
+```
+
+To get a sense of how much spatial correlation affects the multicolinear clusters, we compute a distance on the CNA marker names. It is clear that most multicolinear clusters have the same interval name suggesting those intervals with similar distance will be clustered together. 
+
+```{r}
+suppressWarnings(library(stringdist))
+library(foreach)
+clusterDistr <- as.data.frame(table(clout$cluster), stringAsFactors = FALSE)
+#Cluster `0` corresponds to sufficiently independent CNA's. Omit it from the multi-colinear analysis.
+mcolinear <- clusterDistr$Var1[2:nrow(clusterDistr)]
+nameDist <- foreach(cl = mcolinear, .combine = 'c', .packages = c("stringdist")) %do% {
+  cn <- colnames(X[,clout$cluster == cl])
+  cnIdx <- seq_along(cn)
+  
+  nds <- length(cn) * (length(cn)  - 1) / 2
+  sds <- numeric(nds)
+  cntr <- 1
+  for(i in cnIdx[-length(cnIdx)]) {
+    for(j in (i + 1):length(cnIdx)) {
+      #message(i,",", j)
+      sds[cntr] <- stringdist(cn[i], cn[j])
+      cntr <- cntr + 1
+    }
+  }
+  mean(sds)         
+}
+hist(nameDist, col="#31a354", xlab = "restricted Damerau-Levenshtein distance of CNA names", main = "" )
+```
+
+We validate that the `eps` parameter behaves as we anticipated by computing the mean correlation of each multicolinear cluster. 
+
+```{r}
+clCorMeans <- foreach(cl = mcolinear, .combine = 'c') %do% {
+  clcor <- cor(X[,clout$cluster == cl])
+  mean(1 - clcor[upper.tri(clcor)])
+}
+hist(clCorMeans, col="#31a354", xlab = "Dissimilarity (|1 - Cor(X,Y)|)", main = "" )
+```
+
+#### Averaging Multicolinear Clusters
+
+We will use the average of each mulitcolinear cluster to collapse (i.e. replace) the multi-colinear CNA into a single representative vector for future data analysis.
+
+```{r}
+avgMultiCol <- foreach(cl = mcolinear, .combine = 'cbind') %do% {
+  rowMeans(X[,clout$cluster == cl])
+}
+```
+
+#### Choose a representative interval name
+
+Almost all of these multicolinear CNA are contiguous. We resolve the interval names of the multicolinear CNA by either (1) collapsing the identical interval names or (2) changing the interval names to reflect an expanded contiguous range of the multicolinear CNA. 
+
+```{r}
+namesMultiCol <- foreach(i = seq_along(mcolinear)) %do% {
+  colnames(X[,clout$cluster == mcolinear[i]])
+}
+```
+
+Those multicolinear CNA with interval names that are not identical, but are contiguous are renamed to reflect the contiguity. Only one of the multicolinear entries is not contiguous (index 59); but they happen to be in the same chromosome and the same arm. We make note of this by separating the two  cytoband regions with a semi-colon.  Lastly we rename the averaged multicolinear CNA with the representative interal name that spans two or more multicolinear CNA variables. 
+
+```{r}
+toResolve <- namesMultiCol
+namesMultiCol <- sapply(toResolve, function(x) paste0(unique(sort(unlist(strsplit(x=x, split = "-")))), collapse = "-"))
+colnames(avgMultiCol) <- unlist(namesMultiCol)
+```
+
+Cluster `0` corresponds to sufficiently independent CNA's; these are combined with the collapsed multicolinear CNA's.
+
+```{r}
+#assure that combining avg. multi-colinear cna intervals with the non-multi-colinear intervals are matched by sample
+stopifnot(identical(rownames(t(pwf$cnv.data)[sidx,]), rownames(avgMultiCol)))
+cna <- t(cbind(t(pwf$cnv.data)[sidx,clout$cluster == 0],avgMultiCol))
+```
+
+The dimension of CNA has now been reduced to 1662 from 1730 under this setting. 
+
+```{r}
+dim(cna)
+```
+
+Assure that the averaging of multicolinear features preserved the sample order. 
+
+```{r}
+cna_sample_names <-  substring(colnames(cna), 6, 12)
+stopifnot(identical(cna_sample_names, substring(rownames(avgMultiCol), 6, 12)))
+rna_sample_names <- sampleNames(rnaset)
+stopifnot(identical(cna_sample_names, rna_sample_names))
+```
+
+### Annotate the genomic coordinates to enable cis/trans regulation. 
+
+Create unique ID's for the genomic coordinates by appending the position coordinates in a <chr>_<start>_<end>_<multi-colinear cluster id> format. If the multi-colinear cluster id is non-zero, then this CNA feature has been averaged by the analysis above. 
+
+```{r}
+cnapos <- pwf$cnv.pos
+cnaids <- apply( cnapos[ , c(1,2,3) ] , 1 , paste , collapse = "_" )
+#add multicolinear ids
+cnaids <- paste(cnaids,clout$cluster, sep = "_")
+stopifnot(!anyDuplicated(cnaids))
+str(cnaids)
+```
+
+Confirm that multicolinear CNA have no direct overlaps in the genome. 
+
+```{r}
+suppressPackageStartupMessages(library(GenomicRanges))
+gr <- GRanges(seqnames = Rle(paste0("chr", cnapos$ch.interval.iter2)),
+              ranges = IRanges(start = cnapos$begin.nuc.iter2, end = cnapos$end.nuc.iter2, 
+                               names = cnapos$Cyto))
+no_overlap <- all(sapply(mcolinear, function(mc) { 
+  grcl <- gr[clout$cluster == mc,]
+  grclu <- unique(grcl)
+  ov <- findOverlaps(grcl, grclu)
+  identical(ov@to, ov@from)
+}))
+stopifnot(no_overlap)
+```
+
+Improve the cytoband information to be as non-redundant as possible. 
+
+```{r}
+nr_cytobands <- function(cb) { 
+  split_cb <- unlist(strsplit(x = cb, split = "-"))
+  if(length(split_cb) != 2) { 
+    return(cb)
+  }
+
+  split_cb2 <- unlist(strsplit(x = split_cb, split = "p|q"))
+  pq1 <- regmatches(split_cb[1], m= regexpr(pattern = "[pq]+", text = split_cb[1])) 
+  pq2 <- regmatches(split_cb[2], m= regexpr(pattern = "[pq]+", text = split_cb[2])) 
+  same_arm <- pq1 == pq2
+  chr1 <- split_cb2[1]
+  chr2 <- split_cb2[3]
+  same_chr <- chr1 == chr2
+  loc1 <- as.numeric(split_cb2[2])
+  loc2 <- as.numeric(split_cb2[4])
+  same_loc <- loc1 == loc2
+  
+  if( same_chr & same_arm & same_loc) { 
+    paste0(chr1, pq1, loc1)
+  } else if (same_chr & same_arm & !same_loc) {
+    paste0(chr1, pq1, min(loc1,loc2), "-", max(loc1,loc2))
+  } else if (same_chr & !same_arm & same_loc) { 
+    paste0(chr1, pq1, loc1, "-", pq2, loc2)
+  } else if (same_chr & !same_arm & !same_loc) { 
+    paste0(chr1, pq1, loc1, "-", chr2, pq2, loc2)
+  } else if (!same_chr) { 
+    paste0(chr1, pq1, loc1, "-", chr2, pq2, loc2)
+  }
+}
+tmp <- data.frame(original = cnapos$Cyto, nr = sapply(cnapos$Cyto, nr_cytobands))
+nr_cytoband_ids <- as.character(tmp$nr)
+```
+
+Format the CNA feature's genomic coordinates in the same fashion as the protein and mRNA features. 
+
+```{r}
+cna_node_attributes <- data.frame(id = cnaids,
+                                 chr = paste0("chr", cnapos$ch.interval.iter2),
+                                 start =  cnapos$begin.nuc.iter2,
+                                 end = cnapos$end.nuc.iter2,
+                                 symbol = NA,
+                                 cyto = nr_cytoband_ids,
+                                 strand = NA, 
+                                 type  = "x", 
+                                 cytoscape = nr_cytoband_ids,
+                                 stringsAsFactors = FALSE)
+#combine genomic coordinates in the same manner as the CNA data (inclusive of  multicolinear features )
+cna_node_attributes2 <- cna_node_attributes[c(which(clout$cluster == 0), match(mcolinear, clout$cluster)),]
+rownames(cna_node_attributes2) <- cna_node_attributes2$id
+kable(head(cna_node_attributes2), row.names = F)
+```
+
+
+Format the CNA data into an `ExpressionSet` object. Be sure to mean-center CNA features and scale by the standard deviation.
+
+```{r}
+colnames(cna) <- idMapHq$cnvOrder
+rownames(cna) <- cna_node_attributes2$id
+cnaset <- ExpressionSet(assayData = t(scale(t(cna))), 
+                        phenoData = pheno_data,
+                        featureData =  AnnotatedDataFrame(data = cna_node_attributes2))
+cnaset
+```
+
+### Save cleaned data. 
+
+Save the `ExpressionSet` objects, which contain the data to train the spaceMap model and perform downstream network analysis illustrated through `prot-net` and `RNA-net` examples in other sections of this website. 
+
+```{r, eval=FALSE}
+basedir2 <- "../data/"
+saveRDS(rnaset, file = file.path(basedir2, "rna-expression-set.rds"))
+saveRDS(protset, file = file.path(basedir2, "prot-expression-set.rds"))
+saveRDS(cnaset, file = file.path(basedir2, "cna-expression-set.rds"))
+save(rnaset, protset, cnaset, file = file.path(basedir, "bccptac-expression-sets.RData"))
+save.image(file = file.path(basedir, "data-cleaning-environment.RData"))
+```
+
+## Next Step in Analysis
+
+Please see the [Gene Ontology](https://topherconley.github.io/neta-bcpls//neta/prep-go-universes.html) build for the next step in the analysis. 
+
+## Session Info
+
+```{r}
+sessionInfo()
+```
+
+
+

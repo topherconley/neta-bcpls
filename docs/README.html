@@ -15,12 +15,27 @@
 
 <script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<link href="site_libs/bootstrap-3.3.5/css/flatly.min.css" rel="stylesheet" />
+<link href="site_libs/bootstrap-3.3.5/css/readable.min.css" rel="stylesheet" />
 <script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
 <script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
 <script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
 <script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-1.1/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-1.1/highlight.js"></script>
 
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs && document.readyState && document.readyState === "complete") {
+   window.setTimeout(function() {
+      hljs.initHighlighting();
+   }, 0);
+}
+</script>
 
 
 
@@ -82,34 +97,34 @@ button.code-folding-btn:focus {
 <style type="text/css">
 /* padding for bootstrap navbar */
 body {
-  padding-top: 60px;
+  padding-top: 66px;
   padding-bottom: 40px;
 }
 /* offset scroll position for anchor links (for fixed navbar)  */
 .section h1 {
-  padding-top: 65px;
-  margin-top: -65px;
+  padding-top: 71px;
+  margin-top: -71px;
 }
 
 .section h2 {
-  padding-top: 65px;
-  margin-top: -65px;
+  padding-top: 71px;
+  margin-top: -71px;
 }
 .section h3 {
-  padding-top: 65px;
-  margin-top: -65px;
+  padding-top: 71px;
+  margin-top: -71px;
 }
 .section h4 {
-  padding-top: 65px;
-  margin-top: -65px;
+  padding-top: 71px;
+  margin-top: -71px;
 }
 .section h5 {
-  padding-top: 65px;
-  margin-top: -65px;
+  padding-top: 71px;
+  margin-top: -71px;
 }
 .section h6 {
-  padding-top: 65px;
-  margin-top: -65px;
+  padding-top: 71px;
+  margin-top: -71px;
 }
 </style>
 
@@ -161,39 +176,41 @@ $(document).ready(function () {
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
         <li>
-  <a href="index.html">
-    <span class="fa fa-home"></span>
-     
-    Home
-  </a>
+  <a href="index.html">About</a>
 </li>
-<li>
-  <a href="clean-data/data-processing.html">
-    <span class="fa fa-cube"></span>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+    BCPLS Data Analysis
      
-    Data Structure
+    <span class="caret"></span>
   </a>
-</li>
-<li>
-  <a href="neta/prep-go-universes.html">
-    <span class="fa fa-database"></span>
-     
-    Gene Ontology
-  </a>
-</li>
-<li>
-  <a href="neta/neta-bcpls.html">
-    <span class="fa fa-lightbulb-o"></span>
-     
-    Network Analysis
-  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="data.html">1. Data</a>
+    </li>
+    <li>
+      <a href="model_fits.html">2. Model Fitting</a>
+    </li>
+    <li>
+      <a href="neta/prep-go-universes.html">3. Gene Ontology</a>
+    </li>
+    <li>
+      <a href="neta/neta-bcpls.html">4. Network Analysis</a>
+    </li>
+    <li>
+      <a href="vis.html">5. Visualization</a>
+    </li>
+  </ul>
 </li>
 <li>
   <a href="https://github.com/topherconley/neta-bcpls">
     <span class="fa fa-github"></span>
      
-    Code
+    BCPLS Code
   </a>
+</li>
+<li>
+  <a href="https://topherconley.github.io/spacemap/">spacemap R package</a>
 </li>
       </ul>
       <ul class="nav navbar-nav navbar-right">

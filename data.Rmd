@@ -809,9 +809,13 @@ Save the `ExpressionSet` objects, which contain the data to train the spaceMap m
 
 ```{r}
 basedir2 <- "data/"
+#rna
 saveRDS(rnaset, file = file.path(basedir2, "rna-expression-set.rds"))
+#protein
 saveRDS(protset, file = file.path(basedir2, "prot-expression-set.rds"))
+#cna
 saveRDS(cnaset, file = file.path(basedir2, "cna-expression-set.rds"))
+#all
 save(rnaset, protset, cnaset, file = file.path(basedir, "bccptac-expression-sets.RData"))
 save.image(file = file.path(basedir, "data-cleaning-environment.RData"))
 ```
@@ -819,7 +823,7 @@ save.image(file = file.path(basedir, "data-cleaning-environment.RData"))
 
 ## Next Step in Analysis
 
-Please see the [Gene Ontology](https://topherconley.github.io/neta-bcpls//neta/prep-go-universes.html) build for the next step in the analysis. 
+Please see the [Model Fitting](https://topherconley.github.io/neta-bcpls/mfits.html) article for the next step in the analysis. 
 
 ## Session Info
 

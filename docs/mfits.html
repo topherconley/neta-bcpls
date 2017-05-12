@@ -291,7 +291,7 @@ div.tocify {
       <a href="mfits.html">2. Model Fitting</a>
     </li>
     <li>
-      <a href="neta/prep-go-universes.html">3. Annotation</a>
+      <a href="annot.html">3. Annotation</a>
     </li>
     <li>
       <a href="neta/neta-bcpls.html">4. Network Analysis</a>
@@ -376,6 +376,14 @@ spmapcv &lt;- cvVote(Y = pexp, X = cna,
 <pre class="r"><code>ens &lt;- bootEnsemble(Y = pexp, X = cna, tune = spmapcv$minTune, method = &quot;spacemap&quot;, B = 1000, 
                     aszero = 1e-4, tol = 1e-4, seed = 55139L)
 ensbv &lt;- bootVote(ens)</code></pre>
+</div>
+<div id="next-step-in-analysis" class="section level2">
+<h2>Next Step in Analysis</h2>
+<p>Please see the <a href="https://topherconley.github.io/neta-bcpls/annot.html">Annotation</a> article for the next step in the analysis.</p>
+</div>
+<div id="session-info" class="section level2">
+<h2>Session Info</h2>
+<pre class="r"><code>sessionInfo()</code></pre>
 </div>
 <div class="footnotes">
 <hr />

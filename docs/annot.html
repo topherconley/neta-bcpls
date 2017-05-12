@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+
+
+
+<title>Annotation of BCPLS</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/flatly.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/font-awesome-4.5.0/css/font-awesome.min.css" rel="stylesheet" />
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; background-color: #f8f8f8; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+pre, code { background-color: #f8f8f8; }
+code > span.kw { color: #204a87; font-weight: bold; } /* Keyword */
+code > span.dt { color: #204a87; } /* DataType */
+code > span.dv { color: #0000cf; } /* DecVal */
+code > span.bn { color: #0000cf; } /* BaseN */
+code > span.fl { color: #0000cf; } /* Float */
+code > span.ch { color: #4e9a06; } /* Char */
+code > span.st { color: #4e9a06; } /* String */
+code > span.co { color: #8f5902; font-style: italic; } /* Comment */
+code > span.ot { color: #8f5902; } /* Other */
+code > span.al { color: #ef2929; } /* Alert */
+code > span.fu { color: #000000; } /* Function */
+code > span.er { color: #a40000; font-weight: bold; } /* Error */
+code > span.wa { color: #8f5902; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #000000; } /* Constant */
+code > span.sc { color: #000000; } /* SpecialChar */
+code > span.vs { color: #4e9a06; } /* VerbatimString */
+code > span.ss { color: #4e9a06; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #000000; } /* Variable */
+code > span.cf { color: #204a87; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #ce5c00; font-weight: bold; } /* Operator */
+code > span.pp { color: #8f5902; font-style: italic; } /* Preprocessor */
+code > span.ex { } /* Extension */
+code > span.at { color: #c4a000; } /* Attribute */
+code > span.do { color: #8f5902; font-weight: bold; font-style: italic; } /* Documentation */
+code > span.an { color: #8f5902; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #8f5902; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #8f5902; font-weight: bold; font-style: italic; } /* Information */
+</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+</head>
+
+<body>
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+  height: auto;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 60px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+
+.section h2 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+.section h3 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+.section h4 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+.section h5 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+.section h6 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+
+<div class="container-fluid main-container">
+
+<!-- tabsets -->
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+</script>
+
+<!-- code folding -->
+
+
+
+
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+  padding-left: 25px;
+  text-indent: 0;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row-fluid">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html"></a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">About</a>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+    BCPLS Data Analysis
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="data.html">1. Data</a>
+    </li>
+    <li>
+      <a href="mfits.html">2. Model Fitting</a>
+    </li>
+    <li>
+      <a href="annot.html">3. Annotation</a>
+    </li>
+    <li>
+      <a href="neta/neta-bcpls.html">4. Network Analysis</a>
+    </li>
+    <li>
+      <a href="vis.html">5. Visualization</a>
+    </li>
+  </ul>
+</li>
+<li>
+  <a href="https://github.com/topherconley/neta-bcpls">
+    <span class="fa fa-github"></span>
+     
+    BCPLS Code
+  </a>
+</li>
+<li>
+  <a href="https://topherconley.github.io/spacemap/">spacemap</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">Annotation of BCPLS</h1>
+
+</div>
+
+
+<p>Annotation of gene features is very application specific. In this document, we illustrate how we mapped biological processes from the Gene Ontology (GO) onto protein and RNA expressions. A Gene Ontology (GO) universe is defined to be all the biological processess specifically found among the protein and mRNA features used as input to spaceMap. This document shows how the GO universes were constructed for downstrem GO-enrichment analysis of network modules for the networks <code>prot-net</code> and <code>RNA-net</code> in the spaceMap publication.</p>
+<div id="previous-annotations" class="section level2">
+<h2>Previous Annotations</h2>
+<p>In processing the mRNA and protein expression data from <a href="https://topherconley.github.io/neta-bcpls/data.html">step 1</a>, we already have formed gene coordinate annotations. These are stored in the <code>ExpresionSet</code> objects. The existing protein annotations are accessed as follows:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">suppressPackageStartupMessages</span>(<span class="kw">library</span>(Biobase))
+protset &lt;-<span class="st"> </span><span class="kw">readRDS</span>(<span class="dt">file =</span> <span class="st">&quot;data/prot-expression-set.rds&quot;</span>)
+protinfo &lt;-<span class="st"> </span><span class="kw">pData</span>(<span class="kw">featureData</span>(protset))</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">head</span>(protinfo)</code></pre></div>
+<table>
+<thead>
+<tr class="header">
+<th align="left">id</th>
+<th align="left">alias</th>
+<th align="left">chr</th>
+<th align="right">start</th>
+<th align="right">end</th>
+<th align="left">strand</th>
+<th align="left">description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">NP_112598</td>
+<td align="left">EPPK1</td>
+<td align="left">chr8</td>
+<td align="right">143857318</td>
+<td align="right">143878464</td>
+<td align="left">-</td>
+<td align="left">epiplakin</td>
+</tr>
+<tr class="even">
+<td align="left">NP_001714</td>
+<td align="left">DST</td>
+<td align="left">chr6</td>
+<td align="right">56457986</td>
+<td align="right">56954628</td>
+<td align="left">-</td>
+<td align="left">bullous pemphigoid antigen 1 isoform 1e precursor</td>
+</tr>
+<tr class="odd">
+<td align="left">NP_002465</td>
+<td align="left">MYH11</td>
+<td align="left">chr16</td>
+<td align="right">1361145</td>
+<td align="right">15857030</td>
+<td align="left">-</td>
+<td align="left">myosin-11 isoform SM1A</td>
+</tr>
+<tr class="even">
+<td align="left">NP_001035202</td>
+<td align="left">MYH11</td>
+<td align="left">chr16</td>
+<td align="right">1361145</td>
+<td align="right">15857030</td>
+<td align="left">-</td>
+<td align="left">myosin-11 isoform SM2B</td>
+</tr>
+<tr class="odd">
+<td align="left">NP_001070654</td>
+<td align="left">MYH14</td>
+<td align="left">chr19</td>
+<td align="right">50203627</td>
+<td align="right">50310544</td>
+<td align="left">+</td>
+<td align="left">myosin-14 isoform 1</td>
+</tr>
+<tr class="even">
+<td align="left">NP_079005</td>
+<td align="left">MYH14</td>
+<td align="left">chr19</td>
+<td align="right">50203627</td>
+<td align="right">50310544</td>
+<td align="left">+</td>
+<td align="left">myosin-14 isoform 2</td>
+</tr>
+</tbody>
+</table>
+<p>In similary fashion, we can access the mRNA and CNA annotations. Now we focus on establishing a map from GO terms to features, which will be stored in list format because the mapping is not 1-to-1.</p>
+</div>
+<div id="protein-go-universe" class="section level2">
+<h2>Protein GO universe</h2>
+<p>Load the protein features and map their identiers from RefSeq accessions to entrez gene accessions. We need the entrez gene accessions to map to the Gene Ontology.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">protset &lt;-<span class="st"> </span><span class="kw">readRDS</span>(<span class="dt">file =</span> <span class="st">&quot;data/prot-expression-set.rds&quot;</span>)
+<span class="kw">suppressPackageStartupMessages</span>(<span class="kw">library</span>(mygene))
+p2r77map &lt;-<span class="st"> </span><span class="kw">queryMany</span>(<span class="dt">qterms =</span> <span class="kw">featureNames</span>(protset), <span class="dt">scopes =</span> <span class="st">&quot;refseq&quot;</span>,
+                      <span class="dt">fields =</span> <span class="kw">c</span>(<span class="st">&quot;entrezgene&quot;</span>))
+p2r77map2 &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">refseq =</span> p2r77map@listData$query, <span class="dt">entrezgene =</span> p2r77map@listData$entrezgene)
+<span class="kw">saveRDS</span>(p2r77map2, <span class="dt">file =</span> <span class="st">&quot;data/prot-refseq-to-entrezgene-map.rds&quot;</span>)</code></pre></div>
+<p>Get the entrez genes with GO mappings.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">suppressMessages</span>(<span class="kw">library</span>(org.Hs.eg.db))
+x &lt;-<span class="st"> </span>org.Hs.egGO
+hs_feature_list &lt;-<span class="st"> </span>function(db, eg) { 
+  mk &lt;-<span class="st"> </span><span class="kw">mappedkeys</span>(db)
+  xx &lt;-<span class="st"> </span><span class="kw">as.list</span>(db[eg[eg %in%<span class="st"> </span>mk]])
+}
+<span class="co"># Get the entrez gene identifiers that are mapped to a GO ID</span>
+mapped_genes &lt;-<span class="st"> </span><span class="kw">mappedkeys</span>(x)
+entrezgene.qe.go &lt;-<span class="st"> </span><span class="kw">as.character</span>(p2r77map2$entrezgene[ p2r77map2$entrezgene %in%<span class="st"> </span>mapped_genes])
+leg2go &lt;-<span class="st">  </span><span class="kw">hs_feature_list</span>(<span class="dt">db =</span> org.Hs.egGO, <span class="dt">eg =</span> entrezgene.qe.go) </code></pre></div>
+<p>Map the entrez genes to GO biological process terms with some valid evidence (i.e. not “ND”).</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">suppressPackageStartupMessages</span>(<span class="kw">library</span>(foreach))
+leg2go_filtered &lt;-<span class="st"> </span><span class="kw">foreach</span>(<span class="dt">got =</span> leg2go, <span class="dt">eg =</span> <span class="kw">names</span>(leg2go)) %do%<span class="st"> </span>{ 
+  bp_domain &lt;-<span class="st"> </span><span class="kw">sapply</span>(got, function(x) x[[<span class="st">&quot;Ontology&quot;</span>]]) ==<span class="st"> &quot;BP&quot;</span>
+  <span class="co">#bp_domain &lt;- TRUE</span>
+  not_nd_domain &lt;-<span class="st"> </span><span class="kw">sapply</span>(got, function(x) x[[<span class="st">&quot;Evidence&quot;</span>]]) !=<span class="st"> &quot;ND&quot;</span>
+  bp_got &lt;-<span class="st"> </span>got[bp_domain &amp;<span class="st"> </span>not_nd_domain]
+  <span class="kw">sapply</span>(bp_got, function(x) x[[<span class="st">&quot;GOID&quot;</span>]]) 
+}
+<span class="kw">names</span>(leg2go_filtered) &lt;-<span class="st"> </span><span class="kw">names</span>(leg2go)
+leg2go_filtered &lt;-<span class="st"> </span>leg2go_filtered[<span class="kw">sapply</span>(leg2go_filtered, length) !=<span class="st"> </span><span class="dv">0</span>]</code></pre></div>
+<p>Reverse the mapping so that the key is a GO biological process and the values are a character vector of RefSeq accessions. Keep those keys that have at least 15 but no more than 300 RefSeq accessions.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">suppressMessages</span>(<span class="kw">library</span>(topGO))
+go2eg &lt;-<span class="st"> </span><span class="kw">inverseList</span>(leg2go_filtered)
+<span class="co">#switch to refseq id because of graph id and to include all isoforms</span>
+go2eg &lt;-<span class="st"> </span><span class="kw">lapply</span>(go2eg, function(x) <span class="kw">as.character</span>(p2r77map2$refseq[ p2r77map2$entrezgene %in%<span class="st"> </span>x ]))
+<span class="co">#remove duplicate entrez genes</span>
+go2eg &lt;-<span class="st"> </span><span class="kw">lapply</span>(go2eg, function(x) x[!<span class="kw">duplicated</span>(x)])
+<span class="co">#saveRDS(go2eg, file = &quot;~/repos/neta-bccptac/data/no-len-trim-prot-go-bp-to-entrez-gene-list.rds&quot;)</span>
+gosize &lt;-<span class="st"> </span><span class="kw">sapply</span>(go2eg, length)
+go2eg &lt;-<span class="st"> </span>go2eg[ gosize &gt;=<span class="st"> </span><span class="dv">15</span> &amp;<span class="st"> </span>gosize &lt;=<span class="st"> </span><span class="dv">300</span>]
+<span class="co">#assure each go term has a list of non-duplicate ids</span>
+<span class="kw">stopifnot</span>(<span class="kw">all</span>(<span class="kw">sapply</span>(go2eg, anyDuplicated) ==<span class="st"> </span><span class="dv">0</span>))
+eg2go &lt;-<span class="st"> </span><span class="kw">inverseList</span>(go2eg)</code></pre></div>
+<p>Save the protein GO universe.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">saveRDS</span>(go2eg, <span class="dt">file =</span> <span class="st">&quot;data/prot-go-bp-to-entrez-gene-list.rds&quot;</span>)
+<span class="kw">saveRDS</span>(eg2go, <span class="dt">file =</span> <span class="st">&quot;data/prot-go-entrez-gene-to-bp-list.rds&quot;</span>)</code></pre></div>
+<p>Clear the workspace for the RNA analysis.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">rm</span>(<span class="dt">list =</span> <span class="kw">ls</span>())</code></pre></div>
+</div>
+<div id="rna-go-universe" class="section level2">
+<h2>RNA GO universe</h2>
+<p>The identifier is already an entrez accession for the mRNA features. Obtain the entrez genes with their GO mappings.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">rnaset &lt;-<span class="st"> </span><span class="kw">readRDS</span>(<span class="dt">file =</span> <span class="st">&quot;data/rna-expression-set.rds&quot;</span>)
+rna_entrez_ids &lt;-<span class="st"> </span><span class="kw">featureNames</span>(rnaset)
+<span class="kw">library</span>(IRanges)
+<span class="kw">library</span>(org.Hs.eg.db)
+hs_feature_list &lt;-<span class="st"> </span>function(db, eg) { 
+  mk &lt;-<span class="st"> </span><span class="kw">mappedkeys</span>(db)
+  xx &lt;-<span class="st"> </span><span class="kw">as.list</span>(db[eg[eg %in%<span class="st"> </span>mk]])
+}
+leg2go &lt;-<span class="st"> </span><span class="kw">hs_feature_list</span>(<span class="dt">db =</span> org.Hs.egGO, <span class="dt">eg =</span> rna_entrez_ids)</code></pre></div>
+<p>Map the entrez accessions to GO biological process terms with some valid evidence (not “ND”).</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(foreach)
+leg2go_filtered &lt;-<span class="st"> </span><span class="kw">foreach</span>(<span class="dt">got =</span> leg2go, <span class="dt">eg =</span> <span class="kw">names</span>(leg2go)) %do%<span class="st"> </span>{ 
+  bp_domain &lt;-<span class="st"> </span><span class="kw">sapply</span>(got, function(x) x[[<span class="st">&quot;Ontology&quot;</span>]]) ==<span class="st"> &quot;BP&quot;</span>
+  <span class="co">#bp_domain &lt;- TRUE</span>
+  not_nd_domain &lt;-<span class="st"> </span><span class="kw">sapply</span>(got, function(x) x[[<span class="st">&quot;Evidence&quot;</span>]]) !=<span class="st"> &quot;ND&quot;</span>
+  bp_got &lt;-<span class="st"> </span>got[bp_domain &amp;<span class="st"> </span>not_nd_domain]
+  <span class="kw">sapply</span>(bp_got, function(x) x[[<span class="st">&quot;GOID&quot;</span>]]) 
+}
+<span class="kw">names</span>(leg2go_filtered) &lt;-<span class="st"> </span><span class="kw">names</span>(leg2go)
+leg2go_filtered &lt;-<span class="st"> </span>leg2go_filtered[<span class="kw">sapply</span>(leg2go_filtered, length) !=<span class="st"> </span><span class="dv">0</span>]</code></pre></div>
+<p>Reverse the mapping so that the key is a GO biological process and the values are a character vector of entrez gene accessions. Keep those keys that have at least 15 but no more than 300 RefSeq accessions.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">suppressPackageStartupMessages</span>(<span class="kw">library</span>(topGO))
+go2eg &lt;-<span class="st"> </span><span class="kw">inverseList</span>(leg2go_filtered)
+<span class="co">#remove duplicate entrez genes</span>
+go2eg &lt;-<span class="st"> </span><span class="kw">lapply</span>(go2eg, function(x) x[!<span class="kw">duplicated</span>(x)])
+<span class="kw">saveRDS</span>(go2eg, <span class="dt">file =</span> <span class="st">&quot;~/repos/neta-bccptac/data/no-len-trim-rna-go-bp-to-entrez-gene-list.rds&quot;</span>)
+gosize &lt;-<span class="st"> </span><span class="kw">sapply</span>(go2eg, length)
+go2eg &lt;-<span class="st"> </span>go2eg[ gosize &gt;=<span class="st"> </span><span class="dv">15</span> &amp;<span class="st"> </span>gosize &lt;=<span class="st"> </span><span class="dv">300</span>]
+<span class="co">#number of go terms satisfying conditions</span>
+<span class="kw">length</span>(go2eg)</code></pre></div>
+<pre><code>## [1] 102</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#assure each go term has a list of non-duplicate ids</span>
+<span class="kw">stopifnot</span>(<span class="kw">all</span>(<span class="kw">sapply</span>(go2eg, anyDuplicated) ==<span class="st"> </span><span class="dv">0</span>))
+eg2go &lt;-<span class="st"> </span><span class="kw">inverseList</span>(go2eg)</code></pre></div>
+<p>Save the RNA GO universe.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">saveRDS</span>(go2eg, <span class="dt">file =</span> <span class="st">&quot;data/rna-go-bp-to-entrez-gene-list.rds&quot;</span>)
+<span class="kw">saveRDS</span>(eg2go, <span class="dt">file =</span> <span class="st">&quot;data/rna-go-entrez-gene-to-bp-list.rds&quot;</span>)</code></pre></div>
+</div>
+<div id="next-step-in-analysis" class="section level2">
+<h2>Next Step in Analysis</h2>
+<p>Please see the <a href="https://topherconley.github.io/neta-bcpls/neta/neta-bcpls.html">Network Analysis</a> article for the next step in the analysis.</p>
+</div>
+<div id="session-info" class="section level2">
+<h2>Session Info</h2>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">sessionInfo</span>()</code></pre></div>
+<pre><code>## R version 3.4.0 (2017-04-21)
+## Platform: x86_64-w64-mingw32/x64 (64-bit)
+## Running under: Windows 10 x64 (build 14393)
+## 
+## Matrix products: default
+## 
+## locale:
+## [1] LC_COLLATE=English_United States.1252 
+## [2] LC_CTYPE=English_United States.1252   
+## [3] LC_MONETARY=English_United States.1252
+## [4] LC_NUMERIC=C                          
+## [5] LC_TIME=English_United States.1252    
+## 
+## attached base packages:
+## [1] stats4    parallel  stats     graphics  grDevices utils     datasets 
+## [8] methods   base     
+## 
+## other attached packages:
+##  [1] topGO_2.26.0         SparseM_1.77         GO.db_3.4.0         
+##  [4] graph_1.52.0         foreach_1.4.3        org.Hs.eg.db_3.4.0  
+##  [7] AnnotationDbi_1.36.2 IRanges_2.8.2        S4Vectors_0.12.2    
+## [10] Biobase_2.34.0       BiocGenerics_0.20.0  knitr_1.15.1        
+## 
+## loaded via a namespace (and not attached):
+##  [1] Rcpp_0.12.10       magrittr_1.5       lattice_0.20-35   
+##  [4] highr_0.6          stringr_1.2.0      tools_3.4.0       
+##  [7] grid_3.4.0         DBI_0.6-1          matrixStats_0.52.2
+## [10] htmltools_0.3.6    iterators_1.0.8    yaml_2.1.14       
+## [13] rprojroot_1.2      digest_0.6.12      codetools_0.2-15  
+## [16] memoise_1.1.0      evaluate_0.10      RSQLite_1.1-2     
+## [19] rmarkdown_1.5      stringi_1.1.5      compiler_3.4.0    
+## [22] backports_1.0.5</code></pre>
+</div>
+
+<p>Copyright &copy; 2017 Regents of the University of California. All rights reserved.</p>
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

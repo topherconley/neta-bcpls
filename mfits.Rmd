@@ -1,5 +1,7 @@
 ---
 title: "Model Fitting"
+author: "Christopher Conley, Pei Wang, Jie Peng"
+date: "`r Sys.Date()`"
 output:
   html_document:
     toc: true

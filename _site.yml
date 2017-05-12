@@ -1,5 +1,6 @@
 name: "neta-bcpls"
 output_dir: "docs"
+exclude: ["data", "data_files", "data_cache","model-fits", "neta", "neta_cache", "annot_cache"]
 navbar:
   left:
     - text: "About"
@@ -13,9 +14,7 @@ navbar:
         - text: "3. Annotation"
           href: annot.html
         - text: "4. Network Analysis"
-          href: neta/neta-bcpls.html
-        - text: "5. Visualization"
-          href: vis.html          
+          href: neta.html
     - text: "BCPLS Code"
       icon: fa-github
       href: https://github.com/topherconley/neta-bcpls

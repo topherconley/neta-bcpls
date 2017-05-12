@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+
+<meta name="author" content="Christopher Conley, Pei Wang, Jie Peng" />
+
+<meta name="date" content="2017-05-12" />
+
+<title>Network Analysis</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/flatly.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-1.1/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-1.1/highlight.js"></script>
+<link href="site_libs/font-awesome-4.5.0/css/font-awesome.min.css" rel="stylesheet" />
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs && document.readyState && document.readyState === "complete") {
+   window.setTimeout(function() {
+      hljs.initHighlighting();
+   }, 0);
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+</head>
+
+<body>
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+  height: auto;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 60px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+
+.section h2 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+.section h3 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+.section h4 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+.section h5 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+.section h6 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+
+<div class="container-fluid main-container">
+
+<!-- tabsets -->
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+</script>
+
+<!-- code folding -->
+
+
+
+
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+  padding-left: 25px;
+  text-indent: 0;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row-fluid">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html"></a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">About</a>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+    BCPLS Data Analysis
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="data.html">1. Data</a>
+    </li>
+    <li>
+      <a href="mfits.html">2. Model Fitting</a>
+    </li>
+    <li>
+      <a href="annot.html">3. Annotation</a>
+    </li>
+    <li>
+      <a href="neta.html">4. Network Analysis</a>
+    </li>
+  </ul>
+</li>
+<li>
+  <a href="https://github.com/topherconley/neta-bcpls">
+    <span class="fa fa-github"></span>
+     
+    BCPLS Code
+  </a>
+</li>
+<li>
+  <a href="https://topherconley.github.io/spacemap/">spacemap</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">Network Analysis</h1>
+<h4 class="author"><em>Christopher Conley, Pei Wang, Jie Peng</em></h4>
+<h4 class="date"><em>2017-05-12</em></h4>
+
+</div>
+
+
+<p>We take the opportunity to illustrate the analysis of the CNA-mRNA network (i.e. <code>RNA-net</code>) in this document since the the CNA-protein network (i.e. <code>prot-net</code>) was used for illustration of the network analysis toolkit in the spacemap R package’s <a href="https://topherconley.github.io/spacemap/articles/neta.html">vignette</a>. Please refer to the vignette prior to inspecting this analysis. The two documents share virtually identical analytical steps, but this document differs in the response data and we don’t go to great lengths to explain the input arguments to the toolkit.</p>
+<div id="input" class="section level2">
+<h2>Input</h2>
+<p>Load the gene coordinate annotations for mRNA expressions and genomic CNA.</p>
+<pre class="r"><code>library(Biobase)
+yinfo &lt;- pData(featureData(readRDS(file = &quot;data/rna-expression-set.rds&quot;)))
+xinfo &lt;- pData(featureData(readRDS(file = &quot;data/cna-expression-set.rds&quot;)))</code></pre>
+<p>Load the <em>Boot.Vote</em> CNA-mRNA network.</p>
+<pre class="r"><code>net &lt;- readRDS(file = &quot;model-fits/smap_rna_boot_vote.rds&quot;)
+names(net) &lt;- c(&quot;yy&quot;, &quot;xy&quot;)
+rownames(net$xy) &lt;- xinfo$id; colnames(net$xy) &lt;- yinfo$id;
+rownames(net$yy) &lt;- yinfo$id; colnames(net$yy) &lt;- yinfo$id;</code></pre>
+<p>Load the degree distributions for the ensemble of bootstrapped networks.</p>
+<pre class="r"><code>bdeg &lt;- readRDS(file = &quot;model-fits/smap_rna_boot_degree.rds&quot;)
+names(bdeg) &lt;- c(&quot;xy&quot;, &quot;yy&quot;)
+colnames(bdeg$xy) &lt;- xinfo$id; colnames(bdeg$yy) &lt;- yinfo$id;</code></pre>
+<p>Load the Gene Ontology mappings for enrichment analysis.</p>
+<pre class="r"><code>go2eg &lt;- readRDS(&quot;data/rna-go-bp-to-entrez-gene-list.rds&quot;)
+library(AnnotationDbi)
+#human readable 
+process_alias &lt;- Term(names(go2eg))</code></pre>
+</div>
+<div id="map-annotations" class="section level2">
+<h2>Map Annotations</h2>
+<p>Convert the Boot.Vote network into an <em>igraph</em> object and map the annotations onto the network.</p>
+<pre class="r"><code>library(spacemap)
+ig &lt;- spacemap::adj2igraph(yy = net$yy, xy = net$xy, yinfo = yinfo, xinfo = xinfo)</code></pre>
+<p>If we query the attribute names of the nodes in the graph, we notice that the columns of <code>xinfo</code> and <code>yinfo</code> have been applied.</p>
+<pre class="r"><code>vertex_attr_names(graph = ig)</code></pre>
+<pre><code>## [1] &quot;name&quot;   &quot;alias&quot;  &quot;chr&quot;    &quot;start&quot;  &quot;end&quot;    &quot;strand&quot; &quot;levels&quot;</code></pre>
+<p>The igraph package has a number of ways to access the annotation information. For example, if we wish to confirm the chromosome location of GRB7, we can easily query:</p>
+<pre class="r"><code>vertex_attr(graph = ig, name = &quot;chr&quot;, index = V(ig)[alias %in% &quot;GRB7&quot;])</code></pre>
+<pre><code>## [1] &quot;chr17&quot;</code></pre>
+</div>
+<div id="hub-analysis" class="section level2">
+<h2>Hub Analysis</h2>
+<p>We first prioritize the CNA- and mRNA- hubs. If the <code>bdeg</code> argument is specified, then we rank the hubs according to the average degree rank. Accordingly, the most highly ranked hubs will have the most consistently high degree across network ensemble.</p>
+<p>To rank the mRNA nodes, use the <code>rankHub</code> command and simply specify the <code>level = &quot;y&quot;</code> argument.</p>
+<pre class="r"><code>ig &lt;- rankHub(ig = ig, bdeg = bdeg$yy, level = &quot;y&quot;)</code></pre>
+<p>To rank the CNA nodes, specify the <code>level = &quot;x&quot;</code> argument.</p>
+<pre class="r"><code>ig &lt;- rankHub(ig = ig, bdeg = bdeg$xy, level = &quot;x&quot;)</code></pre>
+<p>Alternatively, if the <code>bdeg</code> argument is not available, the ranking is according to degree in the final network (coded by “ig”).</p>
+<pre class="r"><code>tmp &lt;- rankHub(ig = ig,  level = &quot;x&quot;)</code></pre>
+<div id="identify-cis-and-trans" class="section level3">
+<h3>Identify cis and trans</h3>
+<p>Next label <span class="math inline">\(x-y\)</span> edges as being regulated in cis or in trans. The <em>GenomicRanges</em> package and the genomic coordinates <code>chr,start,end</code> columns of <code>xinfo</code> and <code>yinfo</code> are required for this step. If you don’t have the package <a href="http://bioconductor.org/packages/release/bioc/html/GenomicRanges.html">GenomicRanges</a> installed yet, try:</p>
+<p>Now we can label the <span class="math inline">\(x-y\)</span> edges with either “cis” or “trans” in the <code>cis_trans</code> edge attribute of <code>ig</code>.</p>
+<pre class="r"><code>ig &lt;- cisTrans(ig = ig, level = &quot;x-y&quot;, cw = 2e6)</code></pre>
+</div>
+<div id="report" class="section level3">
+<h3>Report</h3>
+<p>We then report a well-organized table, as seen in Table 3 of the spaceMap publication. The <code>top</code> argument allows us to control how many hubs are displayed.</p>
+<pre class="r"><code>xhubs &lt;- reportHubs(ig, top = 7, level = &quot;x&quot;)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">hub</th>
+<th align="left"># cis/ # trans</th>
+<th align="right">Potential # cis</th>
+<th align="left">cis genes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">5q34 (160-170 Mb)</td>
+<td align="left">0 / 188</td>
+<td align="right">4</td>
+<td align="left">–</td>
+</tr>
+<tr class="even">
+<td align="left">10p15.1-15.3 (0.42-4 Mb)</td>
+<td align="left">0 / 55</td>
+<td align="right">7</td>
+<td align="left">–</td>
+</tr>
+<tr class="odd">
+<td align="left">17q12 (38-38 Mb)</td>
+<td align="left">4 / 36</td>
+<td align="right">24</td>
+<td align="left">PNMT, ERBB2, TCAP, GRB7</td>
+</tr>
+<tr class="even">
+<td align="left">10p14-15.1 (4-12 Mb)</td>
+<td align="left">1 / 61</td>
+<td align="right">9</td>
+<td align="left">FLJ45983</td>
+</tr>
+<tr class="odd">
+<td align="left">5q14.3 (88-89 Mb)</td>
+<td align="left">0 / 97</td>
+<td align="right">1</td>
+<td align="left">–</td>
+</tr>
+<tr class="even">
+<td align="left">5q14.3 (89-91 Mb)</td>
+<td align="left">0 / 72</td>
+<td align="right">1</td>
+<td align="left">–</td>
+</tr>
+<tr class="odd">
+<td align="left">9p22.3-23 (9.4-15 Mb)</td>
+<td align="left">2 / 36</td>
+<td align="right">5</td>
+<td align="left">SH3GL2, GLDC</td>
+</tr>
+</tbody>
+</table>
+<p>Similarly, we can report the top 10 mRNA hubs, their degrees in the final network, and a description of each hub, if the <code>description</code> column was specified in <code>yinfo</code>.</p>
+<pre class="r"><code>yhubs &lt;- reportHubs(ig, top = 10, level = &quot;y&quot;)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">hub</th>
+<th align="right">degree</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">FOXA1</td>
+<td align="right">7</td>
+</tr>
+<tr class="even">
+<td align="left">DARC</td>
+<td align="right">9</td>
+</tr>
+<tr class="odd">
+<td align="left">ESR1</td>
+<td align="right">9</td>
+</tr>
+<tr class="even">
+<td align="left">COL10A1</td>
+<td align="right">7</td>
+</tr>
+<tr class="odd">
+<td align="left">FOXC1</td>
+<td align="right">9</td>
+</tr>
+<tr class="even">
+<td align="left">SFRP1</td>
+<td align="right">6</td>
+</tr>
+<tr class="odd">
+<td align="left">SPDEF</td>
+<td align="right">5</td>
+</tr>
+<tr class="even">
+<td align="left">FAT2</td>
+<td align="right">6</td>
+</tr>
+<tr class="odd">
+<td align="left">GABRP</td>
+<td align="right">4</td>
+</tr>
+<tr class="even">
+<td align="left">TRIM29</td>
+<td align="right">7</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="go-neighbor-percentage" class="section level3">
+<h3>GO-neighbor percentage</h3>
+<p>A <em>CNA neighborhood</em> comprises all mRNA nodes that are directly connected to a CNA hub by an edge. CNA neighborhoods represent direct perturbations to the proteome by amplifications or deletions in the DNA. To quantify their functional relevance, we compute a score called the <em>GO-neighbor percentage</em>. Two mRNA nodes are called GO-neighbors if they share a common GO term in the same CNA neighborhood. We postulate that a high percentage of GO-neighbors within a CNA neighborhood associates the CNA hub with more functional meaning. These scores, as presented in Figure 5 of the publication, can be generated with a GO mapping to the mRNAs as follows.</p>
+<pre class="r"><code>hgp &lt;- xHubEnrich(ig = ig, go2eg = go2eg)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">hub</th>
+<th align="right">degree</th>
+<th align="right">neighbor_percentage</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">1p22.2-22.3</td>
+<td align="right">12</td>
+<td align="right">33.33333</td>
+</tr>
+<tr class="even">
+<td align="left">10p11.1-10q11.21</td>
+<td align="right">8</td>
+<td align="right">62.50000</td>
+</tr>
+<tr class="odd">
+<td align="left">10p14-15.1</td>
+<td align="right">62</td>
+<td align="right">54.83871</td>
+</tr>
+<tr class="even">
+<td align="left">10p15.1-15.3</td>
+<td align="right">55</td>
+<td align="right">50.90909</td>
+</tr>
+<tr class="odd">
+<td align="left">14q11.2-12</td>
+<td align="right">2</td>
+<td align="right">0.00000</td>
+</tr>
+<tr class="even">
+<td align="left">15q13.1-15.1</td>
+<td align="right">7</td>
+<td align="right">0.00000</td>
+</tr>
+<tr class="odd">
+<td align="left">16q23.1-24.3</td>
+<td align="right">6</td>
+<td align="right">33.33333</td>
+</tr>
+<tr class="even">
+<td align="left">17q12</td>
+<td align="right">40</td>
+<td align="right">65.00000</td>
+</tr>
+<tr class="odd">
+<td align="left">5q34</td>
+<td align="right">188</td>
+<td align="right">66.48936</td>
+</tr>
+<tr class="even">
+<td align="left">5q34</td>
+<td align="right">8</td>
+<td align="right">25.00000</td>
+</tr>
+<tr class="odd">
+<td align="left">5q35.2</td>
+<td align="right">2</td>
+<td align="right">0.00000</td>
+</tr>
+<tr class="even">
+<td align="left">5q14.3</td>
+<td align="right">97</td>
+<td align="right">64.94845</td>
+</tr>
+<tr class="odd">
+<td align="left">5q14.3</td>
+<td align="right">72</td>
+<td align="right">54.16667</td>
+</tr>
+<tr class="even">
+<td align="left">8q21.2-22.1</td>
+<td align="right">17</td>
+<td align="right">64.70588</td>
+</tr>
+<tr class="odd">
+<td align="left">9p21.3-22.3</td>
+<td align="right">7</td>
+<td align="right">42.85714</td>
+</tr>
+<tr class="even">
+<td align="left">9p22.3-23</td>
+<td align="right">38</td>
+<td align="right">57.89474</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="module-analysis" class="section level2">
+<h2>Module Analysis</h2>
+<p>There are many criteria to define modules of a network. This toolkit allows users to import the module membership information by themselves (see <code>mods</code> argument in <a href="https://topherconley.github.io/spacemap/reference/modEnrich.html">modEnrich</a>).</p>
+<p>In the spaceMap publication, we use the edge-betweenness algorithm in <em>igraph</em>.</p>
+<pre class="r"><code>library(igraph)
+mods &lt;- cluster_edge_betweenness(ig)</code></pre>
+<p>The main goal of module analysis is identifying modules that are functionally enriched. The <code>modEnrich</code> function will test for significantly over-represented GO-terms (or any other valid functional grouping) within a module using hyper-geometric tests.</p>
+<p>In the current example, only the mRNA nodes have functional mapping and we specify this through the <code>levels = &quot;y&quot;</code> argument. If both predictors and responses have functional mapping in the <code>go2eg</code> argument, then we can specify <code>levels = c(&quot;y&quot;,&quot;x&quot;)</code>. Other arguments are available to control the enrichment testing; see <a href="https://topherconley.github.io/spacemap/reference/modEnrich.html">modEnrich</a> for more details.</p>
+<pre class="r"><code>outmod &lt;- modEnrich(ig = ig, mods = mods, levels = &quot;y&quot;, go2eg = go2eg, process_alias = process_alias, prefix = &quot;R&quot;)</code></pre>
+<p>The output of the module analysis is a list of 3 objects.</p>
+<pre class="r"><code>names(outmod)</code></pre>
+<pre><code>## [1] &quot;ig&quot;   &quot;etab&quot; &quot;eraw&quot;</code></pre>
+<ul>
+<li><p><code>ig</code> is the input igraph network object updated with a “process_id” attribute for nodes affiliated with a significant GO-term. The “process_id” and “module” attributes together are useful for visualizing which nodes are enriched for a specific biological function.</p></li>
+<li><p><code>etab</code> is the polished module enrichment table to report significant GO terms, the representation of the GO term in the module relative to the size of the GO term, and which CNA hubs belong to the module. The top ten hits as in Table S.9 of the spaceMap publication’s supplementary materials are as follows:</p></li>
+</ul>
+<pre class="r"><code>outmod$etab[1:10,]</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Module (size)</th>
+<th align="left">GO Category</th>
+<th align="left">GO Obs./ Total</th>
+<th align="left">X-hubs (hits)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">R10 (56)</td>
+<td align="left">glucose homeostasis</td>
+<td align="left">6/16</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left"></td>
+<td align="left">chemokine-mediated signaling pathway</td>
+<td align="left">6/23</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left"></td>
+<td align="left">response to lipopolysaccharide</td>
+<td align="left">6/33</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left"></td>
+<td align="left">inflammatory response</td>
+<td align="left">8/60</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">R11 (37)</td>
+<td align="left">adaptive immune response</td>
+<td align="left">6/23</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left"></td>
+<td align="left">immune response</td>
+<td align="left">8/59</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">R13 (39)</td>
+<td align="left">epidermis development</td>
+<td align="left">8/22</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">R6 (32)</td>
+<td align="left">heart development</td>
+<td align="left">5/23</td>
+<td align="left">16q23.1-24.3 (6)</td>
+</tr>
+<tr class="odd">
+<td align="left">R7 (67)</td>
+<td align="left">cellular nitrogen compound metabolic process</td>
+<td align="left">6/27</td>
+<td align="left">17q12 (38)</td>
+</tr>
+<tr class="even">
+<td align="left">R8 (66)</td>
+<td align="left">collagen catabolic process</td>
+<td align="left">7/19</td>
+<td align="left"></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><code>eraw</code> contains details for each (module, GO-term) pair that was subjected to the hyper-geometric test. This output gives the user more control by reporting all tests, the relative over-representation of a GO-term in that module, the raw P-value, and the adjusted P-value.</li>
+</ul>
+<pre class="r"><code>outmod$eraw[1:5,]</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Module</th>
+<th align="left">process_id</th>
+<th align="left">process_alias</th>
+<th align="left">GO Obs./Total</th>
+<th align="right">P_value</th>
+<th align="right">Adjusted_P_value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">R1</td>
+<td align="left"><a href="GO:0007568" class="uri">GO:0007568</a></td>
+<td align="left">aging</td>
+<td align="left">2/23</td>
+<td align="right">0.0173451</td>
+<td align="right">0.5671556</td>
+</tr>
+<tr class="even">
+<td align="left">R1</td>
+<td align="left"><a href="GO:0043066" class="uri">GO:0043066</a></td>
+<td align="left">negative regulation of apoptotic process</td>
+<td align="left">2/38</td>
+<td align="right">0.0445685</td>
+<td align="right">0.8834413</td>
+</tr>
+<tr class="odd">
+<td align="left">R1</td>
+<td align="left"><a href="GO:0000122" class="uri">GO:0000122</a></td>
+<td align="left">negative regulation of transcription from RNA polymerase II promoter</td>
+<td align="left">0/58</td>
+<td align="right">1.0000000</td>
+<td align="right">1.0000000</td>
+</tr>
+<tr class="even">
+<td align="left">R1</td>
+<td align="left"><a href="GO:0000165" class="uri">GO:0000165</a></td>
+<td align="left">MAPK cascade</td>
+<td align="left">0/30</td>
+<td align="right">1.0000000</td>
+<td align="right">1.0000000</td>
+</tr>
+<tr class="odd">
+<td align="left">R1</td>
+<td align="left"><a href="GO:0000186" class="uri">GO:0000186</a></td>
+<td align="left">activation of MAPKK activity</td>
+<td align="left">0/25</td>
+<td align="right">1.0000000</td>
+<td align="right">1.0000000</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="export-for-visualization" class="section level2">
+<h2>Export for Visualization</h2>
+<p>There are many tools for network visualization. In the publication of spaceMap, we exported the annotated <em>igraph</em> network object <code>ig</code> to the “graphml” format, which maintained all the attributes associated with nodes when read into <em>Cytoscape</em> for visualization.</p>
+<pre class="r"><code>igraph::write_graph(graph = outmod$ig, file = &quot;neta/spacemap-rna-boot-vote.graphml&quot;, format = &quot;graphml&quot;)</code></pre>
+<p>Here we list all the attributes associated with the nodes that can be used in tandem with Cytoscape’s filtering functions to identify specific nodes of interest.</p>
+<pre class="r"><code>vertex_attr_names(outmod$ig)</code></pre>
+<pre><code>##  [1] &quot;name&quot;             &quot;alias&quot;            &quot;chr&quot;             
+##  [4] &quot;start&quot;            &quot;end&quot;              &quot;strand&quot;          
+##  [7] &quot;levels&quot;           &quot;rank_hub&quot;         &quot;mean_rank_hub&quot;   
+## [10] &quot;sd_rank_hub&quot;      &quot;ncis&quot;             &quot;ntrans&quot;          
+## [13] &quot;regulates_in_cis&quot; &quot;potential_cis&quot;    &quot;module&quot;          
+## [16] &quot;process_id&quot;</code></pre>
+<p>We describe some of the most useful attributes for visualization:</p>
+<ul>
+<li>‘name’: the unique node ID</li>
+<li>‘alias’: the node alias (e.g. gene symbol ERBB2)</li>
+<li>‘chr,start,end,strand’: the gene coordinates of nodes</li>
+<li>‘description’: any note (e.g. breast cancer oncogene)</li>
+<li>‘levels’: indicates whether the node belongs to predictors “x” or responses “y”</li>
+<li>‘rank_hub’: the rank of the hub within its level (e.g. a value of “1” for a node of level “x” means that it is the most consistently high degree <span class="math inline">\(x\)</span> node in the network. )</li>
+<li>‘regulates_in_cis’: list of genes regulated in cis</li>
+<li>‘module’: the module ID that the node belongs to.</li>
+<li>‘process_id’: the significant GO-term(s) associated with the node.</li>
+</ul>
+<p>Also the edge attributes are exported to ‘graphml’ format.</p>
+<pre class="r"><code>edge_attr_names(outmod$ig)</code></pre>
+<pre><code>## [1] &quot;levels&quot;    &quot;cis_trans&quot;</code></pre>
+<ul>
+<li>‘levels’ indicates whether an edge is <span class="math inline">\(x-y\)</span> or <span class="math inline">\(y-y\)</span>.</li>
+<li>‘cis_trans’ indicates whether an edge is regulated in cis or in trans.</li>
+</ul>
+</div>
+<div id="summary" class="section level2">
+<h2>Summary</h2>
+<p>This toolkit is useful for analyzing and summarizing the output of the spaceMap model fit in the context of integrative genomics. The biological context mapped onto the network object can easily be exported to existing network visualization tools like <em>Cytoscape</em>.</p>
+</div>
+
+<p>Copyright &copy; 2017 Regents of the University of California. All rights reserved.</p>
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

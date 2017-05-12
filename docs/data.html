@@ -1,0 +1,1474 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+
+
+
+<title>Proteogenomic data processing</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/flatly.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-1.1/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-1.1/highlight.js"></script>
+<link href="site_libs/font-awesome-4.5.0/css/font-awesome.min.css" rel="stylesheet" />
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs && document.readyState && document.readyState === "complete") {
+   window.setTimeout(function() {
+      hljs.initHighlighting();
+   }, 0);
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+</head>
+
+<body>
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+  height: auto;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 60px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+
+.section h2 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+.section h3 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+.section h4 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+.section h5 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+.section h6 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+
+<div class="container-fluid main-container">
+
+<!-- tabsets -->
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+</script>
+
+<!-- code folding -->
+
+
+
+
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+  padding-left: 25px;
+  text-indent: 0;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row-fluid">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html"></a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">About</a>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+    BCPLS Data Analysis
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="data.html">1. Data</a>
+    </li>
+    <li>
+      <a href="mfits.html">2. Model Fitting</a>
+    </li>
+    <li>
+      <a href="neta/prep-go-universes.html">3. Annotation</a>
+    </li>
+    <li>
+      <a href="neta/neta-bcpls.html">4. Network Analysis</a>
+    </li>
+    <li>
+      <a href="vis.html">5. Visualization</a>
+    </li>
+  </ul>
+</li>
+<li>
+  <a href="https://github.com/topherconley/neta-bcpls">
+    <span class="fa fa-github"></span>
+     
+    BCPLS Code
+  </a>
+</li>
+<li>
+  <a href="https://topherconley.github.io/spacemap/">spacemap</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">Proteogenomic data processing</h1>
+
+</div>
+
+
+<div id="introduction" class="section level2">
+<h2>Introduction</h2>
+<p>Integrative genomic data is not always available in a standard format and often requires some level of data cleaning and bioinformatic processing. The BCPLS data is no exception, which requires multiple pre-processing steps prior to learning the network and interpreting it. It is imperative to maintain the integrity of the Breast Cancer Proteogenomics Landscape Study (BCPLS) data through a transparent outline of every pre-processing step. Dimension reduction, missing value imputation, and reducing multi-colinearity, are specifically highlighted.</p>
+<p>This document serves as an example on how one might organize annotations and high-dimensional omic data prior to leveraging the <a href="https://topherconley.github.io/spacemap/index.html">spacemap R package</a> for network learning. We show how to construct <a href="https://bioconductor.org/packages/release/bioc/html/Biobase.html">Bioconductor’s</a> <code>BioBase::ExpressionSet</code> data structure for the various omic data profiles (e.g. CNA,RNA,protein). The <code>ExpressionSet</code> data structure is part of the best practices of the Bioconductor community because it binds experimental metadata and biological annotations to the omic profiles. The annotations are formatted specifically for the spaceMap network analysis toolkit.</p>
+<p><em>Note:</em> the initial data files are not included in the <a href="https://topherconley.github.io/neta-bcpls/">neta-bcpls</a> repository to keep it as light-weight as possible in terms of file sizes. If interested in reproducing this analysis with the initial data files, please contact the authors of spaceMap.</p>
+</div>
+<div id="proteogenomic-data-provenance" class="section level2">
+<h2>Proteogenomic Data Provenance</h2>
+<p>We process 105 breast tumour samples that are sourced from a collaboration between The Cancer Genome Atlas (TCGA) and the Clinical Proteomics Tumor Analysis Consortium (CPTAC). Assays on these 105 samples generated protein quantification, mRNA expression, and copy number alteration (CNA) forming a framework for proteogenomic analysis. Protein abundance profiles were downloaded from the supplementary table of <a href="http://www.nature.com/nature/journal/v534/n7605/abs/nature18003.html">Breast Cancer Proteogenomics Landscape Study, Nature 2016</a> (BCPLS). The protein identification and quantitation data had been previously processed according to the <a href="https://cptac-data-portal.georgetown.edu/cptac/aboutData/show?scope=dataLevels">Common Data Analysis Pipeline</a> associated with CPTAC. The RNA-seq gene expression data set was pre-processed by Michael Gatza, an author of BCPLS, where data has been normalized, log transformed, median centered, and filtered to contain only those genes present in &gt;80% of samples. The CNA gains and losses from the aCGH data were previously called by the <a href="https://www.amazon.com/Statistical-Methods-CGH-Array-Analysis/dp/363911406X">‘Fixed-order clustering’ algorithm</a> from Pei Wang’s group.</p>
+<p>There are 108 samples of breast cancer tumours, 3 of which are not included because they were normal controls. The meta-data associated with the CPTAC experiment is listed in the following data.frame:</p>
+<pre class="r"><code>basedir &lt;- &quot;~/scratch-data//neta-bccptac/data/&quot;
+clin &lt;- read.csv(file = file.path(basedir,&quot;tumor-metadata.csv&quot;), header = TRUE)
+kable(head(clin))</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Sample</th>
+<th align="right">iTRAQ.Experiment.number</th>
+<th align="left">PAM50</th>
+<th align="left">ER.Status</th>
+<th align="left">PR.Status</th>
+<th align="left">HER2.Status</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">C8-A131</td>
+<td align="right">1</td>
+<td align="left">Basal</td>
+<td align="left">Negative</td>
+<td align="left">Negative</td>
+<td align="left">Negative</td>
+</tr>
+<tr class="even">
+<td align="left">BH-A18Q</td>
+<td align="right">2</td>
+<td align="left">Basal</td>
+<td align="left">Negative</td>
+<td align="left">Negative</td>
+<td align="left">Negative</td>
+</tr>
+<tr class="odd">
+<td align="left">BH-A0AV</td>
+<td align="right">5</td>
+<td align="left">Basal</td>
+<td align="left">Negative</td>
+<td align="left">Negative</td>
+<td align="left">Negative</td>
+</tr>
+<tr class="even">
+<td align="left">A2-A0D0</td>
+<td align="right">6</td>
+<td align="left">Basal</td>
+<td align="left">Negative</td>
+<td align="left">Negative</td>
+<td align="left">Negative</td>
+</tr>
+<tr class="odd">
+<td align="left">A2-A0CM</td>
+<td align="right">7</td>
+<td align="left">Basal</td>
+<td align="left">Negative</td>
+<td align="left">Negative</td>
+<td align="left">Negative</td>
+</tr>
+<tr class="even">
+<td align="left">AR-A0U4</td>
+<td align="right">9</td>
+<td align="left">Basal</td>
+<td align="left">Negative</td>
+<td align="left">Negative</td>
+<td align="left">Negative</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="rna-data-processing" class="section level2">
+<h2>RNA data processing</h2>
+<p>Read in the RNA-seq expression data and the gene-level copy number variation (CNV) data. Although we will not use the gene-level CNV data, it is helpful for identifying sample names.</p>
+<pre class="r"><code>rna &lt;- read.delim(file = file.path(basedir, &quot;rna-seq-data-v1.txt&quot;), header = TRUE, sep = &quot;\t&quot;)
+cnv &lt;- read.delim(file = file.path(basedir, &quot;CNA-data-v1.txt&quot;), header = TRUE, sep = &quot;\t&quot;)</code></pre>
+<div id="keep-only-77-high-quality-samples" class="section level3">
+<h3>Keep only 77 high quality samples</h3>
+<p>There are only 77 high quality samples from the protein quantitation assays, which requires us to subset from the 105 RNA-seq assays. The high quality sample IDs are contained in Pei Wang’s clustering of the aCGH data. Load this analysis in preparation to extract out the high quality sample IDs.</p>
+<pre class="r"><code>pwf &lt;- new.env()
+load(file = file.path(basedir, &quot;cnv.data.80.RData&quot;), envir = pwf)</code></pre>
+<p>In order to reformat the RNA-seq raw data to contain only 77 samples of sufficiently high quality, we must find the high quality sample identifier, which is only a substring contained within of the column names of Pei’s aCGH analysis. Create an ID map to extract the high quality samples.</p>
+<pre class="r"><code>#drop the control, normal sample ids
+idMap &lt;- data.frame(sampleID = clin$Sample[-c(106,107, 108)])
+#obtain the abbreviated sample ids 
+idMap$rnaOrder &lt;- sub(pattern = &quot;.&quot;, replacement = &quot;-&quot;, fixed = TRUE,
+                      x = substr(x = colnames(rna)[2:length(colnames(rna))],
+                                 start = 6, stop = 12))
+#indicate which column indices 
+idMap$rnaIndex &lt;- 2:length(colnames(rna))
+idMap$cnvOrder &lt;- sub(pattern = &quot;.&quot;, replacement = &quot;-&quot;, fixed = TRUE,
+                      x = substr(x = colnames(cnv)[4:length(colnames(cnv))],
+                                 start = 6, stop = 12))
+idMap$cnvIndex &lt;- 4:length(colnames(cnv))
+
+#assure sample columns for rna, cnv are the same order
+stopifnot(identical(idMap$rnaOrder, idMap$cnvOrder))
+#assure unique abreviated sample ids before using grep 
+stopifnot(!anyDuplicated(idMap$rnaOrder))
+stopifnot(!anyDuplicated(pwf$cnv.part))
+idMap$highQual &lt;- FALSE
+highQualIndex &lt;- sapply(pwf$cnv.part, function(x) { 
+  idx &lt;- grep(x, idMap$rnaOrder) 
+  if (length(idx))
+    return(idx)
+  else 
+    return(NA)
+})
+# make sure no high quality samples are missing from search
+stopifnot(!any(is.na(highQualIndex)))
+idMap$highQual[highQualIndex] &lt;- TRUE</code></pre>
+<p>After some processing, we have a data.frame indicating unique sample ID’s, the index in which they appear in the <code>rna</code> and <code>cnv</code> variangles, as well as a logical indicating high quality samples.</p>
+<pre class="r"><code>kable(head(idMap))</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">sampleID</th>
+<th align="left">rnaOrder</th>
+<th align="right">rnaIndex</th>
+<th align="left">cnvOrder</th>
+<th align="right">cnvIndex</th>
+<th align="left">highQual</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">C8-A131</td>
+<td align="left">A2-A0CM</td>
+<td align="right">2</td>
+<td align="left">A2-A0CM</td>
+<td align="right">4</td>
+<td align="left">TRUE</td>
+</tr>
+<tr class="even">
+<td align="left">BH-A18Q</td>
+<td align="left">A2-A0D0</td>
+<td align="right">3</td>
+<td align="left">A2-A0D0</td>
+<td align="right">5</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="odd">
+<td align="left">BH-A0AV</td>
+<td align="left">A2-A0D1</td>
+<td align="right">4</td>
+<td align="left">A2-A0D1</td>
+<td align="right">6</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="even">
+<td align="left">A2-A0D0</td>
+<td align="left">A2-A0D2</td>
+<td align="right">5</td>
+<td align="left">A2-A0D2</td>
+<td align="right">7</td>
+<td align="left">TRUE</td>
+</tr>
+<tr class="odd">
+<td align="left">A2-A0CM</td>
+<td align="left">A2-A0EQ</td>
+<td align="right">6</td>
+<td align="left">A2-A0EQ</td>
+<td align="right">8</td>
+<td align="left">TRUE</td>
+</tr>
+<tr class="even">
+<td align="left">AR-A0U4</td>
+<td align="left">A2-A0EV</td>
+<td align="right">7</td>
+<td align="left">A2-A0EV</td>
+<td align="right">9</td>
+<td align="left">TRUE</td>
+</tr>
+</tbody>
+</table>
+<p>Record the high quality clinical information with samples sorted in the same order as the RNA samples.</p>
+<pre class="r"><code>clin.hq &lt;- clin[match(idMap$rnaOrder[idMap$highQual], clin$Sample),]</code></pre>
+<p>Subset the high quality samples for further processing.</p>
+<pre class="r"><code>rna.hq &lt;- as.matrix(rna[,idMap$rnaIndex[idMap$highQual]])
+cnv.hq &lt;- as.matrix(cnv[,idMap$cnvIndex[idMap$highQual]])
+rownames(cnv.hq) &lt;- cnv$Gene.Symbol
+rownames(rna.hq) &lt;- rna$CLID</code></pre>
+</div>
+<div id="inspect-gene-identifiers." class="section level3">
+<h3>Inspect gene identifiers.</h3>
+<p>The gene symbols are not entirely unique, 12 of them having duplicates.</p>
+<pre class="r"><code>symbol &lt;- unlist(lapply(strsplit(x = as.character(rna$CLID), split = &quot;|&quot;, fixed = TRUE), function(x) x[1]))
+dupSymbolIndex &lt;- duplicated(symbol)
+sum(dupSymbolIndex)</code></pre>
+<pre><code>## [1] 12</code></pre>
+<p>The entrez gene identifiers are unique. We will use entrez gene IDs as the accession number in downstream applications and the gene symbols will be useful to retain for network visualizations.</p>
+<pre class="r"><code>entrezgene &lt;- unlist(lapply(strsplit(x = as.character(rna$CLID), split = &quot;|&quot;, fixed = TRUE), function(x) x[2]))
+dupEntrezGeneIndex &lt;- duplicated(entrezgene)
+sum(dupEntrezGeneIndex)</code></pre>
+<pre><code>## [1] 0</code></pre>
+</div>
+<div id="filter-rna-seq-expression-with-high-missing-value-rates" class="section level3">
+<h3>Filter RNA-seq expression with high missing value rates</h3>
+<p>Remove genes that exceed 30% of samples with missing values.</p>
+<pre class="r"><code>library(ggplot2)
+gnumNA &lt;- sapply(seq_len(nrow(rna.hq)), function(i) sum(is.na(rna.hq[i,])))
+missingRateThresh &lt;- 0.30
+qplot(gnumNA / ncol(rna.hq)*100, geom = &quot;bar&quot;) + xlab(&quot;% missing samples per gene&quot;)</code></pre>
+<p><img src="data_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
+<p>No gene needs to be filtered out on this criteria. In fact, the degree of missingness is low in the CPTAC RNA-seq dataset. In future processing of the data, missing values will be imputed with mean zero after standardization.</p>
+<pre class="r"><code>stopifnot(!any(gnumNA &gt; missingRateThresh*ncol(rna.hq)))</code></pre>
+</div>
+<div id="keep-high-variance-genes-for-network-analysis" class="section level3">
+<h3>Keep high variance genes for network analysis</h3>
+<p>Limited sample size, high biological heterogeneity, amd computational limits of <code>spaceMap</code> are compelling reasons to filter out genes that do not exhibit high dispersion across the samples. Restrict the analysis to mRNA that exceed the 90th percentile in standard deviation.</p>
+<pre class="r"><code>rna.sd &lt;- apply(rna.hq, MARGIN = 1, FUN = sd, na.rm = TRUE)
+keepRNAIndex &lt;- rna.sd &gt; quantile(x = rna.sd, probs = 0.90)</code></pre>
+<p>Include some cis genes that are positive controls of the 17q12 amplicon that may not have passed the high variance filter.</p>
+<pre class="r"><code>rna_entrez &lt;- unlist(lapply(strsplit(x = as.character(rownames(rna.hq)), split = &quot;|&quot;, fixed = TRUE), function(x) x[2]))
+rna_symbol &lt;- unlist(lapply(strsplit(x = as.character(rownames(rna.hq)), split = &quot;|&quot;, fixed = TRUE), function(x) x[1]))
+rna_symbol &lt;- ifelse(rna_symbol == &quot;?&quot;, rna_entrez, rna_symbol)
+pc_index &lt;- match(c(&quot;ERBB2&quot;, &quot;ERBB4&quot;, &quot;GRB7&quot;, &quot;KRT17&quot;, &quot;KRT19&quot;, &quot;PNMT&quot;), rna_symbol)
+final_keep_rna_index &lt;- sort(union(pc_index, which(keepRNAIndex)))
+rnatofit &lt;- rna.hq[final_keep_rna_index,]</code></pre>
+<p>The total number of mRNA expression considered for this analysis is 1657. Mean-center mRNA features and scale by the standard deviation. Follow this action by imputing mean-zero for missing values.</p>
+<pre class="r"><code>#transpose to be n x p dimension
+rnatofit_t &lt;- t(rnatofit)
+#standardize features
+rnatofit_t &lt;- scale(rnatofit_t)
+#zero-mean imputation for mRNA
+rnatofit_t[is.na(rnatofit_t)] &lt;- 0
+rnatofit_std &lt;- t(rnatofit_t)</code></pre>
+</div>
+<div id="form-an-biobaseexpressionset-for-mrna-data." class="section level3">
+<h3>Form an <code>BioBase::ExpressionSet</code> for mRNA data.</h3>
+<p>Associate the correct sample meta data from TCGA with the mRNA expression data.</p>
+<pre class="r"><code>ltcga_data &lt;- strsplit(x = colnames(rnatofit_std), split = &quot;.&quot;, fixed = T)
+tcga_vars &lt;- c(&quot;Project&quot;, &quot;Location&quot;, &quot;Study_Participant&quot;, &quot;Sample_Type&quot;, &quot;Portion&quot;, &quot;Plate_Order&quot;, &quot;Center&quot;)
+ltcga_data2 &lt;- lapply(ltcga_data, function(l) {
+  names(l) &lt;- tcga_vars
+  as.data.frame(t(data.frame(l)))
+})
+suppressPackageStartupMessages(library(data.table))
+tcga_sample_info &lt;- rbindlist(ltcga_data2)
+kable(head(tcga_sample_info))</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Project</th>
+<th align="left">Location</th>
+<th align="left">Study_Participant</th>
+<th align="left">Sample_Type</th>
+<th align="left">Portion</th>
+<th align="left">Plate_Order</th>
+<th align="left">Center</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">TCGA</td>
+<td align="left">A2</td>
+<td align="left">A0CM</td>
+<td align="left">01A</td>
+<td align="left">31R</td>
+<td align="left">A034</td>
+<td align="left">07</td>
+</tr>
+<tr class="even">
+<td align="left">TCGA</td>
+<td align="left">A2</td>
+<td align="left">A0D2</td>
+<td align="left">01A</td>
+<td align="left">21R</td>
+<td align="left">A034</td>
+<td align="left">07</td>
+</tr>
+<tr class="odd">
+<td align="left">TCGA</td>
+<td align="left">A2</td>
+<td align="left">A0EQ</td>
+<td align="left">01A</td>
+<td align="left">11R</td>
+<td align="left">A034</td>
+<td align="left">07</td>
+</tr>
+<tr class="even">
+<td align="left">TCGA</td>
+<td align="left">A2</td>
+<td align="left">A0EV</td>
+<td align="left">01A</td>
+<td align="left">11R</td>
+<td align="left">A034</td>
+<td align="left">07</td>
+</tr>
+<tr class="odd">
+<td align="left">TCGA</td>
+<td align="left">A2</td>
+<td align="left">A0EX</td>
+<td align="left">01A</td>
+<td align="left">21R</td>
+<td align="left">A034</td>
+<td align="left">07</td>
+</tr>
+<tr class="even">
+<td align="left">TCGA</td>
+<td align="left">A2</td>
+<td align="left">A0EY</td>
+<td align="left">01A</td>
+<td align="left">11R</td>
+<td align="left">A034</td>
+<td align="left">07</td>
+</tr>
+</tbody>
+</table>
+<p>Combine this information with other clinical features previously imported.</p>
+<pre class="r"><code>pheno_data &lt;- cbind(clin.hq, tcga_sample_info)
+#simplify sample id now that we have extracted the information encoded therein (see previous block)
+colnames(rnatofit_std) &lt;- clin.hq$Sample
+row.names(pheno_data) &lt;- colnames(rnatofit_std)</code></pre>
+<p>Provide additional information on the sample covariates in the form of meta data.</p>
+<pre class="r"><code>suppressPackageStartupMessages(library(Biobase))
+meta_data &lt;- data.frame(labelDescription = c(&quot;Tissue Location - Study Participant&quot;, 
+                                             &quot;iTRAC experiment number&quot;, 
+                                             &quot;50 genes used to classify breast cancer subtypes&quot;, 
+                                             &quot;Estrogen Receptor Status&quot;, 
+                                             &quot;Progesterone Receptor Status&quot;,
+                                             &quot;HER2 Subtype&quot;,
+                                             &quot;Project&quot;,
+                                             &quot;Location where the samples and the clincal metadata were collected&quot;, 
+                                             &quot;Study Participant&quot;, 
+                                             &quot;Sample and vial (01 = solid tumor, A = The first vial in a sequence of samples)&quot;, 
+                                             &quot;order of portion in a sequence of 100 - 120 mg samples&quot;, 
+                                             &quot;order of plate in a sequence of 96-well plates&quot;,
+                                             &quot;Center that will receive the sample&quot;), 
+                        row.names = colnames(pheno_data))
+pheno_data &lt;- new(&quot;AnnotatedDataFrame&quot;,
+                 data=pheno_data, varMetadata=meta_data)
+pheno_data</code></pre>
+<pre><code>## An object of class &#39;AnnotatedDataFrame&#39;
+##   rowNames: A2-A0CM A2-A0D2 ... E2-A15A (77 total)
+##   varLabels: Sample iTRAQ.Experiment.number ... Center (13 total)
+##   varMetadata: labelDescription</code></pre>
+<div id="annotate-mrna-features." class="section level4">
+<h4>Annotate mRNA features.</h4>
+<p>Identify the entrez gene and symbol features in the data. If a symbol is missing, replace it with its entrez gene id.</p>
+<pre class="r"><code>rna_entrez &lt;- unlist(lapply(strsplit(x = as.character(rownames(rnatofit_std)), split = &quot;|&quot;, fixed = TRUE), function(x) x[2]))
+rna_symbol &lt;- unlist(lapply(strsplit(x = as.character(rownames(rnatofit_std)), split = &quot;|&quot;, fixed = TRUE), function(x) x[1]))
+rna_symbol &lt;- ifelse(rna_symbol == &quot;?&quot;, rna_entrez, rna_symbol)</code></pre>
+<p>Import the Bioconductor package <code>org.Hs.eg.db</code> regarding the <strong>homo sapien</strong> annotation. Prepare a function to extract mapped key values from entrez id features in the requested database.</p>
+<pre class="r"><code>suppressPackageStartupMessages(library(org.Hs.eg.db))
+hs_feature_list &lt;- function(db, eg) { 
+  mk &lt;- mappedkeys(db)
+  xx &lt;- as.list(db[eg[eg %in% mk]])
+}</code></pre>
+<p>Extract the chromosome, first start and last stop coordinates, as well as the strand of the mRNA features. Maintain these attributes in list format since some of the genes do not have complete information on the attributes (e.g. strand information missing).</p>
+<pre class="r"><code>start_chrloc &lt;- hs_feature_list(org.Hs.egCHRLOC, rna_entrez)
+rna_preattr &lt;- list(chr = unlist(hs_feature_list(org.Hs.egCHR, rna_entrez)), 
+                   start =  sapply( hs_feature_list(org.Hs.egCHRLOC, rna_entrez), function(x) min(abs(x))),
+                   end =  sapply(hs_feature_list(org.Hs.egCHRLOCEND, rna_entrez), function(x) max(abs(x))), 
+                   strand = ifelse(sapply(start_chrloc, function(x) sign(min(x))) == 1L, &quot;+&quot;, &quot;-&quot;))</code></pre>
+<p>Reformat the list into a data.frame that can be stored in an <code>Biobase::ExpressionSet</code> object.</p>
+<pre class="r"><code>suppressPackageStartupMessages(library(foreach))
+lrna_node_atttributes &lt;- foreach(id = rna_entrez, sym = rna_symbol) %do% { 
+  id_attr &lt;- sapply(rna_preattr, function(a) {
+    b &lt;- a[names(a) %in% id] 
+    ifelse(length(b), b, NA)
+  })
+  names(id_attr) &lt;- names(rna_preattr)
+  id_attr_df &lt;- as.data.frame(t(data.frame(id_attr)),  stringsAsFactors = F, row.names = &quot;&quot;)
+  id_attr_df$start &lt;- as.integer(id_attr_df$start) 
+  id_attr_df$end &lt;- as.integer(id_attr_df$end) 
+  id_attr_df$id &lt;- id
+  id_attr_df$symbol &lt;- sym
+  id_attr_df$cyto &lt;- NA
+  id_attr_df$type &lt;- &quot;y&quot;
+  id_attr_df$cytoscape &lt;- sym
+  id_attr_df$chr &lt;- paste0(&quot;chr&quot;, id_attr_df$chr)
+  id_attr_df[,c(5,1,2,3,6,7,4,8,9)]
+}
+rna_node_attributes &lt;- as.data.frame(rbindlist(lrna_node_atttributes))
+rownames(rna_node_attributes) &lt;- rna_node_attributes$id
+rna_node_attributes &lt;- rna_node_attributes[,c(1,5,2,3,4,7)]
+rna_node_attributes$start &lt;- as.integer(rna_node_attributes$start)
+rna_node_attributes$end &lt;- as.integer(rna_node_attributes$end)
+names(rna_node_attributes)[1] &lt;- &quot;id&quot;
+names(rna_node_attributes)[2] &lt;- &quot;alias&quot;
+kable(head(rna_node_attributes), row.names = F)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">id</th>
+<th align="left">alias</th>
+<th align="left">chr</th>
+<th align="right">start</th>
+<th align="right">end</th>
+<th align="left">strand</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">143941</td>
+<td align="left">TTC36</td>
+<td align="left">chr11</td>
+<td align="right">118527494</td>
+<td align="right">118531025</td>
+<td align="left">+</td>
+</tr>
+<tr class="even">
+<td align="left">54596</td>
+<td align="left">L1TD1</td>
+<td align="left">chr1</td>
+<td align="right">62194801</td>
+<td align="right">62212328</td>
+<td align="left">+</td>
+</tr>
+<tr class="odd">
+<td align="left">2151</td>
+<td align="left">F2RL2</td>
+<td align="left">chr5</td>
+<td align="right">76615481</td>
+<td align="right">76623434</td>
+<td align="left">-</td>
+</tr>
+<tr class="even">
+<td align="left">23017</td>
+<td align="left">FAIM2</td>
+<td align="left">chr12</td>
+<td align="right">49866895</td>
+<td align="right">49903977</td>
+<td align="left">-</td>
+</tr>
+<tr class="odd">
+<td align="left">9856</td>
+<td align="left">KIAA0319</td>
+<td align="left">chr6</td>
+<td align="right">24544103</td>
+<td align="right">24646155</td>
+<td align="left">-</td>
+</tr>
+<tr class="even">
+<td align="left">164284</td>
+<td align="left">APCDD1L</td>
+<td align="left">chr20</td>
+<td align="right">58459100</td>
+<td align="right">58514938</td>
+<td align="left">-</td>
+</tr>
+</tbody>
+</table>
+<p>Create the final mRNA <code>ExpressionSet</code> object.</p>
+<pre class="r"><code>#subset high quality samples
+idMapHq &lt;- idMap[idMap$highQual,]
+#assure sample order correct
+stopifnot(identical(as.character(clin.hq$Sample), idMapHq$rnaOrder),
+          identical(as.character(clin.hq$Sample), idMapHq$cnvOrder))
+suppressPackageStartupMessages(library(Biobase))
+rownames(rnatofit_std) &lt;- rownames(rna_node_attributes)
+rnaset &lt;- ExpressionSet(assayData = rnatofit_std, 
+                        phenoData = pheno_data,
+                        featureData =  AnnotatedDataFrame(data = rna_node_attributes))
+rnaset</code></pre>
+<pre><code>## ExpressionSet (storageMode: lockedEnvironment)
+## assayData: 1657 features, 77 samples 
+##   element names: exprs 
+## protocolData: none
+## phenoData
+##   sampleNames: A2-A0CM A2-A0D2 ... E2-A15A (77 total)
+##   varLabels: Sample iTRAQ.Experiment.number ... Center (13 total)
+##   varMetadata: labelDescription
+## featureData
+##   featureNames: 143941 54596 ... 9760 (1657 total)
+##   fvarLabels: id chr ... cytoscape (9 total)
+##   fvarMetadata: labelDescription
+## experimentData: use &#39;experimentData(object)&#39;
+## Annotation:</code></pre>
+</div>
+</div>
+</div>
+<div id="protein-quantitation-processing" class="section level2">
+<h2>Protein Quantitation Processing</h2>
+<p>The protein quantitation data contains the 77 high quality samples plus a few normal tissue samples. The data has been normalized and missing data has been filtered away previously. Read in the data.</p>
+<pre class="r"><code>prot &lt;- read.delim(file = file.path(basedir, &quot;proteome-ratio-norm-noNA-unimodal-edit-header.gct&quot;), header = TRUE, sep = &quot;\t&quot;)
+#exclude 3 normal control samples
+prot &lt;- prot[,-c((ncol(prot) - 2):ncol(prot))]</code></pre>
+<p>Reformat the sample-level ids from the protein file to match that found in the clinical meta data file.</p>
+<pre class="r"><code>pid &lt;- gsub(pattern = &quot;.&quot;, replacement = &quot;-&quot;, fixed = TRUE,
+            x = substr(x = colnames(prot)[3:length(colnames(prot))],
+                       start = 1, stop = 7))
+head(pid)</code></pre>
+<pre><code>## [1] &quot;AO-A12D&quot; &quot;C8-A131&quot; &quot;AO-A12B&quot; &quot;BH-A18Q&quot; &quot;C8-A130&quot; &quot;C8-A138&quot;</code></pre>
+<p>Duplicate sample IDs exist, which correspond to technical replicates. There are three sample ids with two technical replicates.</p>
+<pre class="r"><code>dupids &lt;- pid[which(duplicated(pid))]
+dupids</code></pre>
+<pre><code>## [1] &quot;AO-A12D&quot; &quot;C8-A131&quot; &quot;AO-A12B&quot;</code></pre>
+<p>Identify the technical replicates.</p>
+<pre class="r"><code>#extract an extended id including the technical replicate id.
+pid2 &lt;- gsub(pattern = &quot;.&quot;, replacement = &quot;-&quot;, fixed = TRUE, 
+             x = substr(x = colnames(prot)[3:length(colnames(prot))], start =  1, stop = 10))
+#assure there is not duplicates among extended id
+stopifnot(!anyDuplicated(pid2))
+techreps &lt;- sapply(dupids, function(di) pid2[grep(di, pid2)])
+rownames(techreps) &lt;- paste0(&quot;replicate-&quot;, 1:2)
+kable(techreps)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th></th>
+<th align="left">AO-A12D</th>
+<th align="left">C8-A131</th>
+<th align="left">AO-A12B</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>replicate-1</td>
+<td align="left">AO-A12D-01</td>
+<td align="left">C8-A131-01</td>
+<td align="left">AO-A12B-01</td>
+</tr>
+<tr class="even">
+<td>replicate-2</td>
+<td align="left">AO-A12D-05</td>
+<td align="left">C8-A131-32</td>
+<td align="left">AO-A12B-34</td>
+</tr>
+</tbody>
+</table>
+<p>Obtain the corresponding technical replicate indices in the extended protein sample ID variable <code>pid2</code>.</p>
+<pre class="r"><code>trepids &lt;- sapply(dupids, function(pat) grep(pattern = pat, x = pid2))</code></pre>
+<p>The correlation between technical replicates is sufficiently high. We replace each technical replicate measurements with the average.</p>
+<pre class="r"><code>tcors &lt;- vector(mode = &quot;numeric&quot;, length = 3)
+avgtechreps &lt;- matrix(data = NA, nrow = nrow(prot), ncol = 3)
+colnames(avgtechreps) &lt;- colnames(trepids)
+rownames(avgtechreps) &lt;- rownames(prot)
+library(ggplot2)
+for(i in 1:3) {
+  trep &lt;- prot[,trepids[,i] + 2L]
+  avgtechreps[,i] &lt;- rowMeans(trep)
+  prot[,trepids[,i] + 2L] &lt;- avgtechreps[,i]
+  tcors[i] &lt;- cor(trep[,1], trep[,2])
+  print(qplot(x = trep[,1], y  = trep[,2]) + geom_point() + 
+          xlab(&quot;replicate 1&quot;)  + ylab(&quot;replicate 2&quot;) + theme_bw() + 
+           annotate(&quot;text&quot;, x = -5, y = 5, label =  paste0(&quot;Correlation: &quot;, round(tcors[i], 4))))
+}</code></pre>
+<p><img src="data_files/figure-html/unnamed-chunk-28-1.png" width="672" /><img src="data_files/figure-html/unnamed-chunk-28-2.png" width="672" /><img src="data_files/figure-html/unnamed-chunk-28-3.png" width="672" /></p>
+<p>The idMap object contains all 105 sample ids, excluding the 3 control samples, and indicates which is called a sufficiently high quality sample. Subset the 77 high quality samples. Assure the high quality samples agree between protein, CNA and RNA. The order of the samples for proteins does not natively match the RNA and CNA, which will be fixed here.</p>
+<pre class="r"><code>#remove duplicate protein sample ids
+pidnodups &lt;- pid[!duplicated(pid)]
+#assure high quality samples agree between protein,rna,cna
+stopifnot(!length(setdiff(pidnodups, idMapHq$cnvOrder)))
+#change the order of the protein sample columns
+idMapHq$protOrder &lt;- pidnodups[match(idMapHq$cnvOrder, pidnodups)]</code></pre>
+<p>Subset the high quality samples from the original import of the protein quantitation data.</p>
+<pre class="r"><code>#pid
+prot_hq &lt;- prot[,c(1,2, match(idMapHq$protOrder, pid) + 2L)]
+#assure ourselves that the sample ids match in the correct order of the protein expression matrix 
+tmp &lt;- gsub(pattern = &quot;.&quot;, replacement = &quot;-&quot;, fixed = TRUE,
+                      x = substr(x = colnames(prot_hq)[3:length(colnames(prot_hq))],
+                                 start = 1, stop = 7))
+stopifnot(identical(tmp, idMapHq$cnvOrder))
+stopifnot(identical(tmp, idMapHq$rnaOrder))
+stopifnot(identical(tmp, idMapHq$protOrder))
+#match the simplified sample names now that we order has been assured. 
+colnames(prot_hq)[3:length(colnames(prot_hq))] &lt;- tmp</code></pre>
+<p>Filter out all proteins but those that have variance in the top 20%.</p>
+<pre class="r"><code>ed &lt;- as.matrix(prot_hq[,3:ncol(prot_hq)])
+#initial feature information
+fd &lt;-  data.frame( RefSeqProteinID = prot_hq[,2], description = prot_hq[,1], 
+                   row.names = prot_hq[,2])
+protallset &lt;- ExpressionSet(assayData = ed, 
+                         phenoData = pheno_data,
+                         featureData = AnnotatedDataFrame(data = fd))
+pexp &lt;- exprs(protallset)
+#no missing proteins
+stopifnot(!any(is.na(pexp)))
+sd_pexp &lt;- apply(X = pexp, MARGIN = 1, FUN = sd)
+keep_prot_index &lt;- sd_pexp &gt; quantile(x = sd_pexp, probs = 0.80)
+protsdf &lt;- protallset[which(keep_prot_index),]
+protsdf</code></pre>
+<pre><code>## ExpressionSet (storageMode: lockedEnvironment)
+## assayData: 1595 features, 77 samples 
+##   element names: exprs 
+## protocolData: none
+## phenoData
+##   sampleNames: A2-A0CM A2-A0D2 ... E2-A15A (77 total)
+##   varLabels: Sample iTRAQ.Experiment.number ... Center (13 total)
+##   varMetadata: labelDescription
+## featureData
+##   featureNames: NP_112598 NP_001714 ... NP_997625 (1595 total)
+##   fvarLabels: RefSeqProteinID description
+##   fvarMetadata: labelDescription
+## experimentData: use &#39;experimentData(object)&#39;
+## Annotation:</code></pre>
+<p>As seen in the <code>ExpressionSet object</code>, we have filtered out samples and protein features, added the phenotypic data, but have yet to add gene coordinates of the feature level information.</p>
+<div id="add-gene-coordinates-of-the-protein-features" class="section level3">
+<h3>Add gene coordinates of the protein features</h3>
+<p>Since the phenotypic data for the samples has been prepared earlier, arrange to annotate the protein features.</p>
+<pre class="r"><code>suppressPackageStartupMessages(library(Biobase))
+suppressPackageStartupMessages(library(mygene))
+p2r77map &lt;- queryMany(qterms = featureNames(protsdf), scopes = &quot;refseq&quot;,
+                      fields = c(&quot;entrezgene&quot;, &quot;symbol&quot;))</code></pre>
+<pre><code>## Querying chunk 1</code></pre>
+<pre><code>## Querying chunk 2</code></pre>
+<pre><code>## Finished
+## Pass returnall=TRUE to return lists of duplicate or missing query terms.</code></pre>
+<pre class="r"><code>p2r77map2 &lt;- data.frame(refseq = p2r77map@listData$query, entrezgene = as.character(p2r77map@listData$entrezgene),
+                        symbol = p2r77map@listData$symbol, stringsAsFactors = FALSE)</code></pre>
+<p>The RefSeq ID’s of the protein features is non-missing and unique.</p>
+<pre class="r"><code>stopifnot(!any(is.na(p2r77map2$refseq)))
+stopifnot(!any(duplicated(p2r77map2$refseq)))</code></pre>
+<p>On the other hand, some of the entrez gene ID’s are missing.</p>
+<pre class="r"><code>missing_entrez_gene_ids &lt;- p2r77map2$refseq[is.na(p2r77map2$entrezgene)]
+length(missing_entrez_gene_ids)</code></pre>
+<pre><code>## [1] 29</code></pre>
+<p>And duplication of entrez gene ID implies there are 194 isoforms.</p>
+<pre class="r"><code>sum(duplicated(p2r77map2$entrezgene))</code></pre>
+<pre><code>## [1] 194</code></pre>
+<p>Identify the protein features that are not missing entrez gene identifiers so that we can find their gene coordinates. List the isoforms for each of the 1400 features that ought to have gene coordinates.</p>
+<pre class="r"><code>p2r77map3 &lt;- p2r77map2[!is.na(p2r77map2$entrezgene),]
+isoforms &lt;- split(p2r77map3$refseq, f = as.factor(p2r77map3$entrezgene))
+#unique entrez gene identifiers
+egu &lt;- names(isoforms)</code></pre>
+<p>Add the gene coordinate information as in the mRNA case where we have information available.</p>
+<pre class="r"><code>get_protein_gene_coords &lt;- function(egu, isoforms) { 
+  #find gene coordinate information for each unique entrez gene identifier
+  yyids &lt;- egu
+  yy_chr &lt;- hs_feature_list(org.Hs.egCHR, yyids)
+  #assign to X
+  yy_chr[[which(sapply(yy_chr, length) &gt; 1)]] &lt;- &quot;X&quot;
+  yy_chr &lt;- unlist(yy_chr)
+  start_chrloc &lt;- hs_feature_list(org.Hs.egCHRLOC, yyids)
+  #get minimum start site
+  min_start_chrloc &lt;- sapply(start_chrloc, function(x) min(abs(x)))
+  #strand information
+  yy_strand &lt;- ifelse(sapply(start_chrloc, function(x) sign(min(x))) == 1L, &quot;+&quot;, &quot;-&quot;)
+  #get maximum end site
+  end_chrloc &lt;- hs_feature_list(org.Hs.egCHRLOCEND, yyids)
+  max_start_chrloc &lt;- sapply(end_chrloc, function(x) max(abs(x)))
+  #get symbols
+  yy_symbols &lt;- unlist(hs_feature_list(org.Hs.egSYMBOL, yyids))
+  
+  #for each isoform provide gene coordinate information
+  library(foreach)
+  yy_node_attributes &lt;- foreach(isos = isoforms, eg = names(isoforms), .combine= &#39;rbind&#39;) %do% { 
+    #if symbol does not exist for isoform, provide refseq id
+    if (is.na(yy_symbols[eg])) { 
+      cys &lt;- isos 
+    } else { 
+      cys &lt;- yy_symbols[eg]
+    }
+    data.frame(id = isos, 
+               chr = paste0(&quot;chr&quot;, yy_chr[eg]),
+               start = min_start_chrloc[eg],
+               end = max_start_chrloc[eg],
+               symbol = yy_symbols[eg],
+               cyto = NA,
+               cytoscape = cys, 
+               strand = yy_strand[eg],
+               type = &quot;y&quot;, 
+               stringsAsFactors = FALSE, 
+               row.names = NULL)
+  } 
+  stopifnot(!any(is.na(yy_node_attributes$id)))
+  
+  #add missing feature values for those protein features that do not have gene coordinates
+  missing_feats &lt;- data.frame(id = missing_entrez_gene_ids, 
+                              chr = NA,
+                              start = NA,
+                              end = NA,
+                              symbol = NA,
+                              cyto = NA,
+                              cytoscape = missing_entrez_gene_ids, 
+                              strand = NA,
+                              type = &quot;y&quot;, 
+                              stringsAsFactors = FALSE, 
+                              row.names = NULL)
+  yy_node_attributes &lt;- rbind(yy_node_attributes,missing_feats)
+  #sort to match the feature order of the expression data
+  yy_node_attributes[match(p2r77map2$refseq, yy_node_attributes$id),]
+}
+prot_gene_coordinates &lt;- get_protein_gene_coords(egu, isoforms)
+rownames(prot_gene_coordinates) &lt;- prot_gene_coordinates$id
+
+tmp &lt;- pData(featureData(protsdf))
+prot_node_attributes &lt;- prot_gene_coordinates[match(tmp$RefSeqProteinID, prot_gene_coordinates$id),]
+prot_node_attributes$description &lt;- as.character(tmp$description)
+
+prot_node_attributes &lt;- prot_node_attributes[,c(1,7,2,3,4,8,10)]
+prot_node_attributes$start &lt;- as.integer(prot_node_attributes$start)
+prot_node_attributes$end &lt;- as.integer(prot_node_attributes$end)
+names(prot_node_attributes)[1] &lt;- &quot;id&quot;
+names(prot_node_attributes)[2] &lt;- &quot;alias&quot;
+kable(head(prot_node_attributes), row.names = F)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">id</th>
+<th align="left">alias</th>
+<th align="left">chr</th>
+<th align="right">start</th>
+<th align="right">end</th>
+<th align="left">strand</th>
+<th align="left">description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">NP_112598</td>
+<td align="left">EPPK1</td>
+<td align="left">chr8</td>
+<td align="right">143857318</td>
+<td align="right">143878464</td>
+<td align="left">-</td>
+<td align="left">epiplakin</td>
+</tr>
+<tr class="even">
+<td align="left">NP_001714</td>
+<td align="left">DST</td>
+<td align="left">chr6</td>
+<td align="right">56457986</td>
+<td align="right">56954628</td>
+<td align="left">-</td>
+<td align="left">bullous pemphigoid antigen 1 isoform 1e precursor</td>
+</tr>
+<tr class="odd">
+<td align="left">NP_002465</td>
+<td align="left">MYH11</td>
+<td align="left">chr16</td>
+<td align="right">1361145</td>
+<td align="right">15857030</td>
+<td align="left">-</td>
+<td align="left">myosin-11 isoform SM1A</td>
+</tr>
+<tr class="even">
+<td align="left">NP_001035202</td>
+<td align="left">MYH11</td>
+<td align="left">chr16</td>
+<td align="right">1361145</td>
+<td align="right">15857030</td>
+<td align="left">-</td>
+<td align="left">myosin-11 isoform SM2B</td>
+</tr>
+<tr class="odd">
+<td align="left">NP_001070654</td>
+<td align="left">MYH14</td>
+<td align="left">chr19</td>
+<td align="right">50203627</td>
+<td align="right">50310544</td>
+<td align="left">+</td>
+<td align="left">myosin-14 isoform 1</td>
+</tr>
+<tr class="even">
+<td align="left">NP_079005</td>
+<td align="left">MYH14</td>
+<td align="left">chr19</td>
+<td align="right">50203627</td>
+<td align="right">50310544</td>
+<td align="left">+</td>
+<td align="left">myosin-14 isoform 2</td>
+</tr>
+<tr class="odd">
+<td align="left">We now form the</td>
+<td align="left">final `</td>
+<td align="left">Expressi</td>
+<td align="right">onSet` for t</td>
+<td align="right">he protein q</td>
+<td align="left">uantitati</td>
+<td align="left">on data. Be sure to mean-center protein features and scale by the standard deviation.</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>protset_no_std &lt;- ExpressionSet(assayData = exprs(protsdf), 
+                                phenoData = pheno_data,
+                                featureData = AnnotatedDataFrame(data =prot_node_attributes))
+#n x p format
+prot_expr_t &lt;- t(exprs(protsdf))
+#standardize and return to p x n format
+prot_expr_std &lt;- t(scale(prot_expr_t))
+protset &lt;- ExpressionSet(assayData = prot_expr_std, 
+                         phenoData = pheno_data,
+                         featureData = AnnotatedDataFrame(data =prot_node_attributes))</code></pre>
+</div>
+</div>
+<div id="process-the-copy-number-alteration-data." class="section level2">
+<h2>Process the Copy Number Alteration data.</h2>
+<p>In the copy number alteration data, we found that even after processing with ‘Fixed-order clustering’ (Pei Wang, 2010), there were still groupings of highly-correlated copy number alteration intervals (CNA). We seek to further cluster these CNA so that the extreme multicolinearity does not render the multivariate regression unstable.</p>
+<div id="multicolinearity-detection-of-copy-number-alteration-intervals" class="section level3">
+<h3>Multicolinearity detection of Copy Number Alteration Intervals</h3>
+<p>We will use a density-based clustering algorithm because it has a number of virtues:</p>
+<ul>
+<li><strong>Was developed for spatial correlation clustering of database records and extends well to CNA application.</strong></li>
+<li><strong>No a priori knowledge of number of clusters.</strong></li>
+<li><strong>Allows for noise clusters which corresponds to independent random variables.</strong></li>
+<li>Scales to high dimension (fast).</li>
+<li>The distance function: 1 - |Correlation(X, Y)| is well-defined for multicolinearity detection.</li>
+<li>Clear Parametric Behavior: Episilon Parameter is very intuitive for defining how multicolinear variables are. <code>MinPnts</code> Parmater set to 2 to find even small blocks of multicolinearity.</li>
+</ul>
+<p>The data has been previously loaded in the <code>pwf</code> environment. Create a temporary matrix <code>X</code> to store the CNA data.</p>
+<pre class="r"><code>rownames(pwf$cnv.data) &lt;- pwf$cnv.pos$Cyto
+X &lt;- t(pwf$cnv.data)
+dim(X)</code></pre>
+<pre><code>## [1]   77 1730</code></pre>
+<p>Match the samples order to that of the protein and mRNA data.</p>
+<pre class="r"><code>sidx &lt;- match(idMap$cnvOrder[idMap$highQual], substring(colnames(pwf$cnv.data), 6, 12))
+X &lt;- X[sidx,]</code></pre>
+<p>Assure ourselves again that the sample names match up now that we are working with the CNA output from CLAC.</p>
+<pre class="r"><code>cna_sample_names &lt;-  substring(colnames(pwf$cnv.data), 6, 12)[sidx]
+rna_sample_names &lt;-  sampleNames(rnaset)
+stopifnot(identical(cna_sample_names, rna_sample_names))</code></pre>
+<p>Many variables have the same cytoband interval names.</p>
+<pre class="r"><code>sum(duplicated(colnames(X)))</code></pre>
+<pre><code>## [1] 862</code></pre>
+<p>Load the <code>fpc</code> package for using the <code>dbscan</code> algorithm. Define the dissimilarity to be <span class="math inline">\(1 - abs(\rho(X))\)</span>, where <span class="math inline">\(\rho(X)\)</span> is the spearman’s correlation of the CNA.</p>
+<pre class="r"><code>library(fpc)
+dR &lt;- 1 - abs(cor(X))
+hist(dR[upper.tri(dR)], col = &quot;#31a354&quot;, xlab = &quot;Multicolinearity dissimilarity (|1 - cor(X,Y)|)&quot;, main = &quot;&quot;)</code></pre>
+<p><img src="data_files/figure-html/unnamed-chunk-44-1.png" width="672" /></p>
+<p>We require a minimally small cluster of size 2 and a reacheability radius of <code>1e-3</code>.</p>
+<pre class="r"><code>clout &lt;- dbscan(data = dR, MinPts = 2, eps = 1e-3, method = &quot;dist&quot;)</code></pre>
+<p>The distribution on cluster size shows that most CNA are classified as sufficiently distinct from other CNA. This is desired behavior. Most extreme colinearity cases are limited to small clusters.</p>
+<pre class="r"><code>barplot(table(table(clout$cluster)[]), col = &quot;#31a354&quot;, xlab = &quot;Cluster Size&quot;, ylab = &quot;Frequency&quot;, main = &quot;&quot;)</code></pre>
+<p><img src="data_files/figure-html/unnamed-chunk-46-1.png" width="672" /></p>
+<p>To get a sense of how much spatial correlation affects the multicolinear clusters, we compute a distance on the CNA cytoband names. It is clear that most multicolinear clusters have the same cytoband label suggesting those intervals with similar distance will be clustered together.</p>
+<pre class="r"><code>suppressWarnings(library(stringdist))
+library(foreach)
+clusterDistr &lt;- as.data.frame(table(clout$cluster), stringAsFactors = FALSE)
+#Cluster `0` corresponds to sufficiently independent CNA&#39;s. Omit it from the multi-colinear analysis.
+mcolinear &lt;- clusterDistr$Var1[2:nrow(clusterDistr)]
+nameDist &lt;- foreach(cl = mcolinear, .combine = &#39;c&#39;, .packages = c(&quot;stringdist&quot;)) %do% {
+  cn &lt;- colnames(X[,clout$cluster == cl])
+  cnIdx &lt;- seq_along(cn)
+  
+  nds &lt;- length(cn) * (length(cn)  - 1) / 2
+  sds &lt;- numeric(nds)
+  cntr &lt;- 1
+  for(i in cnIdx[-length(cnIdx)]) {
+    for(j in (i + 1):length(cnIdx)) {
+      #message(i,&quot;,&quot;, j)
+      sds[cntr] &lt;- stringdist(cn[i], cn[j])
+      cntr &lt;- cntr + 1
+    }
+  }
+  mean(sds)         
+}
+hist(nameDist, col=&quot;#31a354&quot;, xlab = &quot;restricted Damerau-Levenshtein distance of CNA names&quot;, main = &quot;&quot; )</code></pre>
+<p><img src="data_files/figure-html/unnamed-chunk-47-1.png" width="672" /></p>
+<p>We validate that the <code>eps</code> parameter behaves as we anticipated by computing the mean correlation of each multicolinear cluster.</p>
+<pre class="r"><code>clCorMeans &lt;- foreach(cl = mcolinear, .combine = &#39;c&#39;) %do% {
+  clcor &lt;- cor(X[,clout$cluster == cl])
+  mean(1 - clcor[upper.tri(clcor)])
+}
+hist(clCorMeans, col=&quot;#31a354&quot;, xlab = &quot;Dissimilarity (|1 - Cor(X,Y)|)&quot;, main = &quot;&quot; )</code></pre>
+<p><img src="data_files/figure-html/unnamed-chunk-48-1.png" width="672" /></p>
+<div id="averaging-multicolinear-clusters" class="section level4">
+<h4>Averaging Multicolinear Clusters</h4>
+<p>We will use the average of each mulitcolinear cluster to collapse (i.e. replace) the multi-colinear CNA into a single representative vector for future data analysis.</p>
+<pre class="r"><code>avgMultiCol &lt;- foreach(cl = mcolinear, .combine = &#39;cbind&#39;) %do% {
+  rowMeans(X[,clout$cluster == cl])
+}</code></pre>
+</div>
+<div id="choose-a-representative-interval-name" class="section level4">
+<h4>Choose a representative interval name</h4>
+<p>Almost all of these multicolinear CNA are contiguous. We resolve the interval names of the multicolinear CNA by either (1) collapsing the identical interval names or (2) changing the interval names to reflect an expanded contiguous range of the multicolinear CNA.</p>
+<pre class="r"><code>namesMultiCol &lt;- foreach(i = seq_along(mcolinear)) %do% {
+  colnames(X[,clout$cluster == mcolinear[i]])
+}</code></pre>
+<p>Those multicolinear CNA with interval names that are not identical, but are contiguous are renamed to reflect the contiguity. Only one of the multicolinear entries is not contiguous (index 59); but they happen to be in the same chromosome and the same arm. We make note of this by separating the two cytoband regions with a semi-colon. Lastly we rename the averaged multicolinear CNA with the representative interval name that spans two or more multicolinear CNA variables.</p>
+<pre class="r"><code>toResolve &lt;- namesMultiCol
+namesMultiCol &lt;- sapply(toResolve, function(x) paste0(unique(sort(unlist(strsplit(x=x, split = &quot;-&quot;)))), collapse = &quot;-&quot;))
+colnames(avgMultiCol) &lt;- unlist(namesMultiCol)</code></pre>
+<p>Cluster <code>0</code> corresponds to sufficiently independent CNA’s; these are combined with the collapsed multicolinear CNA’s.</p>
+<pre class="r"><code>#assure that combining avg. multi-colinear cna intervals with the non-multi-colinear intervals are matched by sample
+stopifnot(identical(rownames(t(pwf$cnv.data)[sidx,]), rownames(avgMultiCol)))
+cna &lt;- t(cbind(t(pwf$cnv.data)[sidx,clout$cluster == 0],avgMultiCol))</code></pre>
+<p>The dimension of CNA has now been reduced to 1662 from 1730 under this setting.</p>
+<pre class="r"><code>dim(cna)</code></pre>
+<pre><code>## [1] 1662   77</code></pre>
+<p>Assure that the averaging of multicolinear features preserved the sample order.</p>
+<pre class="r"><code>cna_sample_names &lt;-  substring(colnames(cna), 6, 12)
+stopifnot(identical(cna_sample_names, substring(rownames(avgMultiCol), 6, 12)))
+rna_sample_names &lt;- sampleNames(rnaset)
+stopifnot(identical(cna_sample_names, rna_sample_names))</code></pre>
+</div>
+</div>
+<div id="annotate-the-genomic-coordinates-to-enable-cistrans-regulation." class="section level3">
+<h3>Annotate the genomic coordinates to enable cis/trans regulation.</h3>
+<p>Create unique ID’s for the genomic coordinates by appending the position coordinates in a <chr><em><start></em><end>_<multi-colinear cluster id> format. If the multi-colinear cluster id is non-zero, then this CNA feature has been averaged by the analysis above.</p>
+<pre class="r"><code>cnapos &lt;- pwf$cnv.pos
+cnaids &lt;- apply( cnapos[ , c(1,2,3) ] , 1 , paste , collapse = &quot;_&quot; )
+#add multicolinear ids
+cnaids &lt;- paste(cnaids,clout$cluster, sep = &quot;_&quot;)
+stopifnot(!anyDuplicated(cnaids))
+str(cnaids)</code></pre>
+<pre><code>##  chr [1:1730] &quot;1_3218610_6972307_0&quot; &quot;1_6990271_14007849_0&quot; ...</code></pre>
+<p>Confirm that multicolinear CNA have no direct overlaps in the genome.</p>
+<pre class="r"><code>suppressPackageStartupMessages(library(GenomicRanges))
+gr &lt;- GRanges(seqnames = Rle(paste0(&quot;chr&quot;, cnapos$ch.interval.iter2)),
+              ranges = IRanges(start = cnapos$begin.nuc.iter2, end = cnapos$end.nuc.iter2, 
+                               names = cnapos$Cyto))
+no_overlap &lt;- all(sapply(mcolinear, function(mc) { 
+  grcl &lt;- gr[clout$cluster == mc,]
+  grclu &lt;- unique(grcl)
+  ov &lt;- findOverlaps(grcl, grclu)
+  identical(ov@to, ov@from)
+}))
+stopifnot(no_overlap)</code></pre>
+<p>Improve the cytoband information to be as non-redundant as possible.</p>
+<pre class="r"><code>nr_cytobands &lt;- function(cb) { 
+  split_cb &lt;- unlist(strsplit(x = cb, split = &quot;-&quot;))
+  if(length(split_cb) != 2) { 
+    return(cb)
+  }
+
+  split_cb2 &lt;- unlist(strsplit(x = split_cb, split = &quot;p|q&quot;))
+  pq1 &lt;- regmatches(split_cb[1], m= regexpr(pattern = &quot;[pq]+&quot;, text = split_cb[1])) 
+  pq2 &lt;- regmatches(split_cb[2], m= regexpr(pattern = &quot;[pq]+&quot;, text = split_cb[2])) 
+  same_arm &lt;- pq1 == pq2
+  chr1 &lt;- split_cb2[1]
+  chr2 &lt;- split_cb2[3]
+  same_chr &lt;- chr1 == chr2
+  loc1 &lt;- as.numeric(split_cb2[2])
+  loc2 &lt;- as.numeric(split_cb2[4])
+  same_loc &lt;- loc1 == loc2
+  
+  if( same_chr &amp; same_arm &amp; same_loc) { 
+    paste0(chr1, pq1, loc1)
+  } else if (same_chr &amp; same_arm &amp; !same_loc) {
+    paste0(chr1, pq1, min(loc1,loc2), &quot;-&quot;, max(loc1,loc2))
+  } else if (same_chr &amp; !same_arm &amp; same_loc) { 
+    paste0(chr1, pq1, loc1, &quot;-&quot;, pq2, loc2)
+  } else if (same_chr &amp; !same_arm &amp; !same_loc) { 
+    paste0(chr1, pq1, loc1, &quot;-&quot;, chr2, pq2, loc2)
+  } else if (!same_chr) { 
+    paste0(chr1, pq1, loc1, &quot;-&quot;, chr2, pq2, loc2)
+  }
+}
+tmp &lt;- data.frame(original = cnapos$Cyto, nr = sapply(cnapos$Cyto, nr_cytobands))
+nr_cytoband_ids &lt;- as.character(tmp$nr)</code></pre>
+<p>Format the CNA feature’s genomic coordinates in the same fashion as the protein and mRNA features.</p>
+<pre class="r"><code>cna_node_attributes &lt;- data.frame(id = cnaids, 
+                                  alias = nr_cytoband_ids,
+                                  chr = paste0(&quot;chr&quot;, cnapos$ch.interval.iter2),
+                                  start = as.integer(cnapos$begin.nuc.iter2),
+                                  end = as.integer(cnapos$end.nuc.iter2),
+                                  stringsAsFactors = FALSE)
+#combine genomic coordinates in the same manner as the CNA data (inclusive of  multicolinear features )
+cna_node_attributes2 &lt;- cna_node_attributes[c(which(clout$cluster == 0), match(mcolinear, clout$cluster)),]
+rownames(cna_node_attributes2) &lt;- cna_node_attributes2$id
+kable(head(cna_node_attributes2), row.names = F)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">id</th>
+<th align="left">alias</th>
+<th align="left">chr</th>
+<th align="right">start</th>
+<th align="right">end</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">1_3218610_6972307_0</td>
+<td align="left">1p36.31-36.32</td>
+<td align="left">chr1</td>
+<td align="right">3218610</td>
+<td align="right">6972307</td>
+</tr>
+<tr class="even">
+<td align="left">1_6990271_14007849_0</td>
+<td align="left">1p36.21-36.31</td>
+<td align="left">chr1</td>
+<td align="right">6990271</td>
+<td align="right">14007849</td>
+</tr>
+<tr class="odd">
+<td align="left">1_14028633_28692959_0</td>
+<td align="left">1p35.3-36.21</td>
+<td align="left">chr1</td>
+<td align="right">14028633</td>
+<td align="right">28692959</td>
+</tr>
+<tr class="even">
+<td align="left">1_28695597_30387702_0</td>
+<td align="left">1p35.2-35.3</td>
+<td align="left">chr1</td>
+<td align="right">28695597</td>
+<td align="right">30387702</td>
+</tr>
+<tr class="odd">
+<td align="left">1_30392887_31908168_0</td>
+<td align="left">1p35.2</td>
+<td align="left">chr1</td>
+<td align="right">30392887</td>
+<td align="right">31908168</td>
+</tr>
+<tr class="even">
+<td align="left">1_31909072_32155716_0</td>
+<td align="left">1p35.2</td>
+<td align="left">chr1</td>
+<td align="right">31909072</td>
+<td align="right">32155716</td>
+</tr>
+</tbody>
+</table>
+<p>Format the CNA data into an <code>ExpressionSet</code> object. Be sure to mean-center CNA features and scale by the standard deviation.</p>
+<pre class="r"><code>colnames(cna) &lt;- idMapHq$cnvOrder
+rownames(cna) &lt;- cna_node_attributes2$id
+cnaset &lt;- ExpressionSet(assayData = t(scale(t(cna))), 
+                        phenoData = pheno_data,
+                        featureData =  AnnotatedDataFrame(data = cna_node_attributes2))
+cnaset</code></pre>
+<pre><code>## ExpressionSet (storageMode: lockedEnvironment)
+## assayData: 1662 features, 77 samples 
+##   element names: exprs 
+## protocolData: none
+## phenoData
+##   sampleNames: A2-A0CM A2-A0D2 ... E2-A15A (77 total)
+##   varLabels: Sample iTRAQ.Experiment.number ... Center (13 total)
+##   varMetadata: labelDescription
+## featureData
+##   featureNames: 1_3218610_6972307_0 1_6990271_14007849_0 ...
+##     18_46953239_47159916_49 (1662 total)
+##   fvarLabels: id chr ... cytoscape (9 total)
+##   fvarMetadata: labelDescription
+## experimentData: use &#39;experimentData(object)&#39;
+## Annotation:</code></pre>
+</div>
+</div>
+<div id="save-cleaned-data." class="section level2">
+<h2>Save cleaned data.</h2>
+<p>Save the <code>ExpressionSet</code> objects, which contain the data to train the spaceMap model and perform downstream network analysis illustrated in other sections of this website.</p>
+<pre class="r"><code>basedir2 &lt;- &quot;data/&quot;
+saveRDS(rnaset, file = file.path(basedir2, &quot;rna-expression-set.rds&quot;))
+saveRDS(protset, file = file.path(basedir2, &quot;prot-expression-set.rds&quot;))
+saveRDS(cnaset, file = file.path(basedir2, &quot;cna-expression-set.rds&quot;))
+save(rnaset, protset, cnaset, file = file.path(basedir, &quot;bccptac-expression-sets.RData&quot;))
+save.image(file = file.path(basedir, &quot;data-cleaning-environment.RData&quot;))</code></pre>
+</div>
+<div id="next-step-in-analysis" class="section level2">
+<h2>Next Step in Analysis</h2>
+<p>Please see the <a href="https://topherconley.github.io/neta-bcpls//neta/prep-go-universes.html">Gene Ontology</a> build for the next step in the analysis.</p>
+</div>
+<div id="session-info" class="section level2">
+<h2>Session Info</h2>
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>## R version 3.3.3 (2017-03-06)
+## Platform: x86_64-w64-mingw32/x64 (64-bit)
+## Running under: Windows 10 x64 (build 14393)
+## 
+## locale:
+## [1] LC_COLLATE=English_United States.1252 
+## [2] LC_CTYPE=English_United States.1252   
+## [3] LC_MONETARY=English_United States.1252
+## [4] LC_NUMERIC=C                          
+## [5] LC_TIME=English_United States.1252    
+## 
+## attached base packages:
+## [1] stats4    parallel  stats     graphics  grDevices utils     datasets 
+## [8] methods   base     
+## 
+## other attached packages:
+##  [1] stringdist_0.9.4.4     fpc_2.1-10             mygene_1.10.0         
+##  [4] GenomicFeatures_1.26.2 GenomicRanges_1.26.2   GenomeInfoDb_1.10.3   
+##  [7] foreach_1.4.3          org.Hs.eg.db_3.4.0     AnnotationDbi_1.36.2  
+## [10] IRanges_2.8.1          S4Vectors_0.12.1       Biobase_2.34.0        
+## [13] BiocGenerics_0.20.0    data.table_1.10.4      ggplot2_2.2.1         
+## [16] knitr_1.15.1          
+## 
+## loaded via a namespace (and not attached):
+##  [1] httr_1.2.1                 jsonlite_1.3              
+##  [3] splines_3.3.3              gsubfn_0.6-6              
+##  [5] Formula_1.2-1              assertthat_0.1            
+##  [7] highr_0.6                  latticeExtra_0.6-28       
+##  [9] Rsamtools_1.26.1           robustbase_0.92-7         
+## [11] yaml_2.1.14                RSQLite_1.1-2             
+## [13] backports_1.0.5            lattice_0.20-34           
+## [15] chron_2.3-49               digest_0.6.12             
+## [17] RColorBrewer_1.1-2         XVector_0.14.0            
+## [19] checkmate_1.8.2            colorspace_1.3-2          
+## [21] htmltools_0.3.5            Matrix_1.2-8              
+## [23] plyr_1.8.4                 XML_3.98-1.5              
+## [25] biomaRt_2.30.0             zlibbioc_1.20.0           
+## [27] mvtnorm_1.0-5              scales_0.4.1              
+## [29] BiocParallel_1.8.1         htmlTable_1.9             
+## [31] tibble_1.2                 sqldf_0.4-10              
+## [33] SummarizedExperiment_1.4.0 nnet_7.3-12               
+## [35] lazyeval_0.2.0             proto_1.0.0               
+## [37] survival_2.40-1            magrittr_1.5              
+## [39] mclust_5.2.2               memoise_1.0.0             
+## [41] evaluate_0.10              MASS_7.3-45               
+## [43] class_7.3-14               foreign_0.8-67            
+## [45] tools_3.3.3                trimcluster_0.1-2         
+## [47] stringr_1.1.0              kernlab_0.9-25            
+## [49] munsell_0.4.3              cluster_2.0.5             
+## [51] Biostrings_2.42.1          compiler_3.3.3            
+## [53] grid_3.3.3                 RCurl_1.95-4.8            
+## [55] iterators_1.0.8            htmlwidgets_0.8           
+## [57] bitops_1.0-6               base64enc_0.1-3           
+## [59] labeling_0.3               rmarkdown_1.4.0.9000      
+## [61] gtable_0.2.0               codetools_0.2-15          
+## [63] flexmix_2.3-13             DBI_0.5-1                 
+## [65] curl_2.3                   R6_2.2.0                  
+## [67] GenomicAlignments_1.10.0   gridExtra_2.2.1           
+## [69] prabclus_2.2-6             rtracklayer_1.34.1        
+## [71] Hmisc_4.0-2                rprojroot_1.2             
+## [73] modeltools_0.2-21          stringi_1.1.2             
+## [75] Rcpp_0.12.10               rpart_4.1-10              
+## [77] acepack_1.4.1              DEoptimR_1.0-8            
+## [79] diptest_0.75-7</code></pre>
+</div>
+
+<p>Copyright &copy; 2017 Regents of the University of California. All rights reserved.</p>
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

@@ -172,7 +172,7 @@ saveRDS(eg2go, file = "data/rna-go-entrez-gene-to-bp-list.rds")
 
 ## Next Step in Analysis
 
-Please see the [Network Analysis](https://topherconley.github.io/neta-bcpls/neta/neta-bcpls.html) article for the next step in the analysis. 
+Please see the [Network Analysis](https://topherconley.github.io/neta-bcpls/neta.html) article for the next step in the analysis. 
 
 ## Session Info
 

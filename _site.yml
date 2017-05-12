@@ -9,7 +9,7 @@ navbar:
         - text: "1. Data"
           href: data.html
         - text: "2. Model Fitting"
-          href: model_fits.html          
+          href: mfits.html          
         - text: "3. Annotation"
           href: neta/prep-go-universes.html
         - text: "4. Network Analysis"
@@ -19,11 +19,11 @@ navbar:
     - text: "BCPLS Code"
       icon: fa-github
       href: https://github.com/topherconley/neta-bcpls
-    - text: "spacemap R package"
+    - text: "spacemap"
       href: https://topherconley.github.io/spacemap/
 output:
   html_document:
-    theme: readable
+    theme: flatly
     include:
       after_body: footer.html
     

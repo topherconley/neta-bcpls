@@ -1,0 +1,96 @@
+---
+title: "Model Fitting"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE)
+```
+
+
+Fitting the spacemap model to 1662 genomic copy number alternations (CNA) and 1595 protein expressions across 77 heterogeneous breast cancer tumor samples requires a process that guards against overfitting. We used *CV.Vote* for tuning parameter selection and *Boot.Vote* for building an ensemble network that finds real biological signal amidst millions of possible interactions in the data set. This model fitting process demands a powerful computational framework that leverages parallelism. 
+
+
+*Note:* The following code is for llustration purposes only and it is not recommended to evaluate the CV.Vote (see [cvVote](https://topherconley.github.io/spacemap/reference/cvVote.html)) or Boot.Vote (see [bootEnsemble](https://topherconley.github.io/spacemap/reference/bootEnsemble.html) and [bootVote](https://topherconley.github.io/spacemap/reference/bootVote.html)) steps on a simple laptop computer^[Actual model fitting employed 124 workers on a computer cluster. The last tuning grid iteration took `cvVote()` 34 hours.]. 
+
+## Setup
+
+Load the `ExpressionSet` data objects containing protein expressions and genomic copy number, which was generated in [the previous step](https://topherconley.github.io/neta-bcpls/data.html).
+
+```{r}
+suppressPackageStartupMessages(library(Biobase))
+cnaset <- readRDS("data/cna-expression-set.rds") 
+cna <- t(Biobase::exprs(cnaset))
+protset <- readRDS("data/prot-expression-set.rds")
+pexp <- t(Biobase::exprs(protset))
+#standardize
+pexp <- scale(pexp); cna <- scale(cna);
+```
+
+Load the cross validation test sets, which have balanced molecular subtypes across the test sets.
+
+```{r}
+testSetIds <- readRDS(file = "data/prot_cv_10k_test_sets77.rds")
+#create training sets.
+allSampleIds <- seq_len(nrow(pexp))
+trainSetIds <- lapply(testSetIds, function(testSetId) setdiff(allSampleIds, testSetId))
+```
+
+Load the last iteration of the tuning grid used in the CV.Vote step. 
+
+```{r}
+tmap <- readRDS(file = "data/prot_last_tune_grid.rds")
+```
+
+Establish a parallel backend to evaluate model fits efficiently.
+
+```{r}
+library(doParallel)
+library(parallel)
+ncores <- detectCores()  - 1
+cl <- makeCluster(ncores)
+registerDoParallel(cl)
+```
+
+Create a directory to save all the model fits from `cvVote`. 
+
+```{r}
+rp <- "~/scratch-data/neta-bcpls/mfits/"
+system(paste("mkdir -p ", rp))
+```
+
+
+## CV.Vote
+
+The CV.Vote step will estimate optimal tuning parameters for the BCPLS application, which are denoted as $\hat \lambda^*_1, \hat  \lambda^*_2, \hat \lambda^*_3$. 
+
+
+```{r}
+library(spacemap)
+spmapcv <- cvVote(Y = pexp, X = cna, 
+                  trainIds = trainSetIds, testIds = testSetIds, 
+                  method = "spacemap", tuneGrid = tmap,
+                  resPath = rp, aszero = 1e-4,
+                  tol = 1e-4, cd_iter = 60e7)
+```
+
+The estimated optimal tuning parameters (previously computed) are: 
+
+```{r, eval=TRUE, echo = FALSE}
+readRDS(file = "data/best_prot_tune_params.rds")
+```
+
+## Boot.Vote
+
+Fit the spaceMap model on bootstrapped data replicates subject to $\hat \lambda^*_1, \hat  \lambda^*_2, \hat \lambda^*_3$, which will create a bootstrap ensemble of networks. Then, construct a final network through majority vote on the bootstrap ensemble of networks.  
+
+```{r}
+ens <- bootEnsemble(Y = pexp, X = cna, tune = spmapcv$minTune, method = "spacemap", B = 1000, 
+                    aszero = 1e-4, tol = 1e-4, seed = 55139L)
+ensbv <- bootVote(ens)
+```
+
+

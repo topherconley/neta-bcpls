@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+
+
+
+<title>Model Fitting</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/flatly.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-1.1/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-1.1/highlight.js"></script>
+<link href="site_libs/font-awesome-4.5.0/css/font-awesome.min.css" rel="stylesheet" />
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs && document.readyState && document.readyState === "complete") {
+   window.setTimeout(function() {
+      hljs.initHighlighting();
+   }, 0);
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+</head>
+
+<body>
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+  height: auto;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 60px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+
+.section h2 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+.section h3 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+.section h4 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+.section h5 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+.section h6 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+
+<div class="container-fluid main-container">
+
+<!-- tabsets -->
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+</script>
+
+<!-- code folding -->
+
+
+
+
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+  padding-left: 25px;
+  text-indent: 0;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row-fluid">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html"></a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">About</a>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+    BCPLS Data Analysis
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="data.html">1. Data</a>
+    </li>
+    <li>
+      <a href="mfits.html">2. Model Fitting</a>
+    </li>
+    <li>
+      <a href="neta/prep-go-universes.html">3. Annotation</a>
+    </li>
+    <li>
+      <a href="neta/neta-bcpls.html">4. Network Analysis</a>
+    </li>
+    <li>
+      <a href="vis.html">5. Visualization</a>
+    </li>
+  </ul>
+</li>
+<li>
+  <a href="https://github.com/topherconley/neta-bcpls">
+    <span class="fa fa-github"></span>
+     
+    BCPLS Code
+  </a>
+</li>
+<li>
+  <a href="https://topherconley.github.io/spacemap/">spacemap</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">Model Fitting</h1>
+
+</div>
+
+
+<p>Fitting the spacemap model to 1662 genomic copy number alternations (CNA) and 1595 protein expressions across 77 heterogeneous breast cancer tumor samples requires a process that guards against overfitting. We used <em>CV.Vote</em> for tuning parameter selection and <em>Boot.Vote</em> for building an ensemble network that finds real biological signal amidst millions of possible interactions in the data set. This model fitting process demands a powerful computational framework that leverages parallelism.</p>
+<p><em>Note:</em> The following code is for llustration purposes only and it is not recommended to evaluate the CV.Vote (see <a href="https://topherconley.github.io/spacemap/reference/cvVote.html">cvVote</a>) or Boot.Vote (see <a href="https://topherconley.github.io/spacemap/reference/bootEnsemble.html">bootEnsemble</a> and <a href="https://topherconley.github.io/spacemap/reference/bootVote.html">bootVote</a>) steps on a simple laptop computer<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>.</p>
+<div id="setup" class="section level2">
+<h2>Setup</h2>
+<p>Load the <code>ExpressionSet</code> data objects containing protein expressions and genomic copy number, which was generated in <a href="https://topherconley.github.io/neta-bcpls/data.html">the previous step</a>.</p>
+<pre class="r"><code>suppressPackageStartupMessages(library(Biobase))
+cnaset &lt;- readRDS(&quot;data/cna-expression-set.rds&quot;) 
+cna &lt;- t(Biobase::exprs(cnaset))
+protset &lt;- readRDS(&quot;data/prot-expression-set.rds&quot;)
+pexp &lt;- t(Biobase::exprs(protset))
+#standardize
+pexp &lt;- scale(pexp); cna &lt;- scale(cna);</code></pre>
+<p>Load the cross validation test sets, which have balanced molecular subtypes across the test sets.</p>
+<pre class="r"><code>testSetIds &lt;- readRDS(file = &quot;data/prot_cv_10k_test_sets77.rds&quot;)
+#create training sets.
+allSampleIds &lt;- seq_len(nrow(pexp))
+trainSetIds &lt;- lapply(testSetIds, function(testSetId) setdiff(allSampleIds, testSetId))</code></pre>
+<p>Load the last iteration of the tuning grid used in the CV.Vote step.</p>
+<pre class="r"><code>tmap &lt;- readRDS(file = &quot;data/prot_last_tune_grid.rds&quot;)</code></pre>
+<p>Establish a parallel backend to evaluate model fits efficiently.</p>
+<pre class="r"><code>library(doParallel)
+library(parallel)
+ncores &lt;- detectCores()  - 1
+cl &lt;- makeCluster(ncores)
+registerDoParallel(cl)</code></pre>
+<p>Create a directory to save all the model fits from <code>cvVote</code>.</p>
+<pre class="r"><code>rp &lt;- &quot;~/scratch-data/neta-bcpls/mfits/&quot;
+system(paste(&quot;mkdir -p &quot;, rp))</code></pre>
+</div>
+<div id="cv.vote" class="section level2">
+<h2>CV.Vote</h2>
+<p>The CV.Vote step will estimate optimal tuning parameters for the BCPLS application, which are denoted as <span class="math inline">\(\hat \lambda^*_1, \hat \lambda^*_2, \hat \lambda^*_3\)</span>.</p>
+<pre class="r"><code>library(spacemap)
+spmapcv &lt;- cvVote(Y = pexp, X = cna, 
+                  trainIds = trainSetIds, testIds = testSetIds, 
+                  method = &quot;spacemap&quot;, tuneGrid = tmap,
+                  resPath = rp, aszero = 1e-4,
+                  tol = 1e-4, cd_iter = 60e7)</code></pre>
+<p>The estimated optimal tuning parameters (previously computed) are:</p>
+<pre><code>##         lam1    lam2     lam3
+## 976 86.76054 18.8506 56.80362</code></pre>
+</div>
+<div id="boot.vote" class="section level2">
+<h2>Boot.Vote</h2>
+<p>Fit the spaceMap model on bootstrapped data replicates subject to <span class="math inline">\(\hat \lambda^*_1, \hat \lambda^*_2, \hat \lambda^*_3\)</span>, which will create a bootstrap ensemble of networks. Then, construct a final network through majority vote on the bootstrap ensemble of networks.</p>
+<pre class="r"><code>ens &lt;- bootEnsemble(Y = pexp, X = cna, tune = spmapcv$minTune, method = &quot;spacemap&quot;, B = 1000, 
+                    aszero = 1e-4, tol = 1e-4, seed = 55139L)
+ensbv &lt;- bootVote(ens)</code></pre>
+</div>
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>Actual model fitting employed 124 workers on a computer cluster. The last tuning grid iteration took <code>cvVote()</code> 34 hours.<a href="#fnref1">↩</a></p></li>
+</ol>
+</div>
+
+<p>Copyright &copy; 2017 Regents of the University of California. All rights reserved.</p>
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

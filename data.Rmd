@@ -13,15 +13,15 @@ knitr::opts_chunk$set(cache=TRUE)
 
 ## Introduction
 
-Integrative genomic data is not always available in a standard format and often requires some level of data cleaning and bioinformatic processing. The BCPLS data is no exception, which requires multiple pre-processing steps prior to learning the network and interpreting it. It is imperative to maintain the integrity of the Breast Cancer Proteogenomics Landscape Study (BCPLC) data through a transparent outline of every pre-processing step. Dimension reduction, missing value imputation, and reducing multi-colinearity, are specifically highlighted. Step [1. Data](clean-data/data-processing.html) in the analysis pipeline, details these (and other) data pre-processing techniques. 
+Integrative genomic data is not always available in a standard format and often requires some level of data cleaning and bioinformatic processing. The BCPLS data is no exception, which requires multiple pre-processing steps prior to learning the network and interpreting it. It is imperative to maintain the integrity of the Breast Cancer Proteogenomics Landscape Study (BCPLS) data through a transparent outline of every pre-processing step. Dimension reduction, missing value imputation, and reducing multi-colinearity, are specifically highlighted. 
 
-We also show how to construct a principled data structure called  an `ExpressionSet` for the various omic data profiles (e.g. CNA,RNA,protein). [Bioconductor's](https://bioconductor.org/packages/release/bioc/html/Biobase.html) `BioBase::ExpressionSet` data structure is part of the best practices of the Bioconductor community because it binds experimental metadata and biological annotations to the omic profiles. The annotations are formatted specifically for the spaceMap network analysis toolkit. This document serves as an example on how one might organize annotations and high-dimensional omic data prior to leveraging the [spacemap R package](https://topherconley.github.io/spacemap/index.html) for network learning. 
+This document serves as an example on how one might organize annotations and high-dimensional omic data prior to leveraging the [spacemap R package](https://topherconley.github.io/spacemap/index.html) for network learning. We  show how to construct  [Bioconductor's](https://bioconductor.org/packages/release/bioc/html/Biobase.html) `BioBase::ExpressionSet` data structure for the various omic data profiles (e.g. CNA,RNA,protein). The `ExpressionSet` data structure is part of the best practices of the Bioconductor community because it binds experimental metadata and biological annotations to the omic profiles. The annotations are formatted specifically for the spaceMap network analysis toolkit. 
 
-*Note:* the initial data files are not included in the [neta-bcpls](https://topherconley.github.io/neta-bcpls/) repository to keep it as light-weight as possible in file sizes. If interested in reproducing this analysis with the initial data files, please contact the authors of spaceMap. 
+*Note:* the initial data files are not included in the [neta-bcpls](https://topherconley.github.io/neta-bcpls/) repository to keep it as light-weight as possible in terms of file sizes. If interested in reproducing this analysis with the initial data files, please contact the authors of spaceMap. 
 
 ## Proteogenomic Data Provenance 
 
-We process 105 breast tumour samples that are sourced from a collaboration between The Cancer Genome Atlas (TCGA)  and the Clinical Proteomics Tumor Analysis Consortium (CPTAC). Assays on these 105 samples generated protein quantification, mRNA expression, and copy number alteration (CNA) forming a framework for proteogenomic analysis. Protein abundance profiles were downloaded from the supplementary table of [Breast Cancer Proteogenomics Landscape Study, Nature 2016](http://www.nature.com/nature/journal/v534/n7605/abs/nature18003.html) (BCPLS). The protein identification and quantitation data had been previously processed according to the Common Data Analysis Pipeline [(CDAP)](https://cptac-data-portal.georgetown.edu/cptac/aboutData/show?scope=dataLevels) of the of the Clinical Proteomics Tumor Analysis Consortium (CPTAC). The RNA-seq gene expression data set was pre-processed by  Michael Gatza, an author of BCPLS, where data has been normalized, log transformed, median centered, and filtered to contain only those genes present in >80% of samples. The CNA gains and losses from the aCGH data were called by the ['Fixed-order clustering' algorithm ](https://www.amazon.com/Statistical-Methods-CGH-Array-Analysis/dp/363911406X) from Pei Wang's group.
+We process 105 breast tumour samples that are sourced from a collaboration between The Cancer Genome Atlas (TCGA)  and the Clinical Proteomics Tumor Analysis Consortium (CPTAC). Assays on these 105 samples generated protein quantification, mRNA expression, and copy number alteration (CNA) forming a framework for proteogenomic analysis. Protein abundance profiles were downloaded from the supplementary table of [Breast Cancer Proteogenomics Landscape Study, Nature 2016](http://www.nature.com/nature/journal/v534/n7605/abs/nature18003.html) (BCPLS). The protein identification and quantitation data had been previously processed according to the [ Common Data Analysis Pipeline](https://cptac-data-portal.georgetown.edu/cptac/aboutData/show?scope=dataLevels) associated with CPTAC. The RNA-seq gene expression data set was pre-processed by  Michael Gatza, an author of BCPLS, where data has been normalized, log transformed, median centered, and filtered to contain only those genes present in >80% of samples. The CNA gains and losses from the aCGH data were previously called by the ['Fixed-order clustering' algorithm ](https://www.amazon.com/Statistical-Methods-CGH-Array-Analysis/dp/363911406X) from Pei Wang's group.
 
 There are 108 samples of breast cancer tumours, 3 of which are not included because they were normal controls. The meta-data associated with the CPTAC experiment is listed in the following data.frame: 
 
@@ -280,9 +280,12 @@ lrna_node_atttributes <- foreach(id = rna_entrez, sym = rna_symbol) %do% {
 }
 rna_node_attributes <- as.data.frame(rbindlist(lrna_node_atttributes))
 rownames(rna_node_attributes) <- rna_node_attributes$id
+rna_node_attributes <- rna_node_attributes[,c(1,5,2,3,4,7)]
+rna_node_attributes$start <- as.integer(rna_node_attributes$start)
+rna_node_attributes$end <- as.integer(rna_node_attributes$end)
+names(rna_node_attributes)[1] <- "id"
+names(rna_node_attributes)[2] <- "alias"
 kable(head(rna_node_attributes), row.names = F)
-#evidence of limited attributes
-#rna_node_attributes[is.na(rna_node_attributes$strand),]
 ```
 
 
@@ -528,14 +531,21 @@ get_protein_gene_coords <- function(egu, isoforms) {
 }
 prot_gene_coordinates <- get_protein_gene_coords(egu, isoforms)
 rownames(prot_gene_coordinates) <- prot_gene_coordinates$id
-kable(head(prot_gene_coordinates), row.names = F)
+
+tmp <- pData(featureData(protsdf))
+prot_node_attributes <- prot_gene_coordinates[match(tmp$RefSeqProteinID, prot_gene_coordinates$id),]
+prot_node_attributes$description <- as.character(tmp$description)
+
+prot_node_attributes <- prot_node_attributes[,c(1,7,2,3,4,8,10)]
+prot_node_attributes$start <- as.integer(prot_node_attributes$start)
+prot_node_attributes$end <- as.integer(prot_node_attributes$end)
+names(prot_node_attributes)[1] <- "id"
+names(prot_node_attributes)[2] <- "alias"
+kable(head(prot_node_attributes), row.names = F)
 ```
 We now form the final `ExpressionSet` for the protein quantitation data. Be sure to mean-center protein features and scale by the standard deviation.
 
 ```{r}
-tmp <- pData(featureData(protsdf))
-prot_node_attributes <- prot_gene_coordinates[match(tmp$RefSeqProteinID, prot_gene_coordinates$id),]
-prot_node_attributes$description <- tmp$description
 protset_no_std <- ExpressionSet(assayData = exprs(protsdf), 
                                 phenoData = pheno_data,
                                 featureData = AnnotatedDataFrame(data =prot_node_attributes))
@@ -550,7 +560,7 @@ protset <- ExpressionSet(assayData = prot_expr_std,
 
 ## Process the Copy Number Alteration data. 
 
-In the copy number alteration data, we found that even after processing with the 'Cluster along chromosomes algorithm' (CLAC), there were still groupings of highly-correlated copy number alteration intervals (CNA). We seek to further cluster these CNA so that the extreme multicolinearity does not render the multivariate regression unstable. 
+In the copy number alteration data, we found that even after processing with 'Fixed-order clustering' (Pei Wang, 2010), there were still groupings of highly-correlated copy number alteration intervals (CNA). We seek to further cluster these CNA so that the extreme multicolinearity does not render the multivariate regression unstable. 
 
 ### Multicolinearity detection of Copy Number Alteration Intervals
 
@@ -594,7 +604,7 @@ Many variables have the same cytoband interval names.
 sum(duplicated(colnames(X)))
 ```
 
-Load the `fpc` package for using the `dbscan` algorithm. Define the dissimilarity to be `1 - minus Correlation`. 
+Load the `fpc` package for using the `dbscan` algorithm. Define the dissimilarity to be $1 - abs(\rho(X))$, where $\rho(X)$ is the spearman's correlation of the CNA. 
 
 ```{r}
 library(fpc)
@@ -602,7 +612,7 @@ dR <- 1 - abs(cor(X))
 hist(dR[upper.tri(dR)], col = "#31a354", xlab = "Multicolinearity dissimilarity (|1 - cor(X,Y)|)", main = "")
 ```
 
-We require a minimally small cluster of size 2 and a `reacheablility` radius of `1e-3`. 
+We require a minimally small cluster of size 2 and a reacheability radius of `1e-3`. 
 
 ```{r}
 clout <- dbscan(data = dR, MinPts = 2, eps = 1e-3, method = "dist")
@@ -614,7 +624,7 @@ The distribution on cluster size shows that most CNA  are classified as sufficie
 barplot(table(table(clout$cluster)[]), col = "#31a354", xlab = "Cluster Size", ylab = "Frequency", main = "")
 ```
 
-To get a sense of how much spatial correlation affects the multicolinear clusters, we compute a distance on the CNA marker names. It is clear that most multicolinear clusters have the same interval name suggesting those intervals with similar distance will be clustered together. 
+To get a sense of how much spatial correlation affects the multicolinear clusters, we compute a distance on the CNA cytoband names. It is clear that most multicolinear clusters have the same cytoband label suggesting those intervals with similar distance will be clustered together. 
 
 ```{r}
 suppressWarnings(library(stringdist))
@@ -671,7 +681,7 @@ namesMultiCol <- foreach(i = seq_along(mcolinear)) %do% {
 }
 ```
 
-Those multicolinear CNA with interval names that are not identical, but are contiguous are renamed to reflect the contiguity. Only one of the multicolinear entries is not contiguous (index 59); but they happen to be in the same chromosome and the same arm. We make note of this by separating the two  cytoband regions with a semi-colon.  Lastly we rename the averaged multicolinear CNA with the representative interal name that spans two or more multicolinear CNA variables. 
+Those multicolinear CNA with interval names that are not identical, but are contiguous are renamed to reflect the contiguity. Only one of the multicolinear entries is not contiguous (index 59); but they happen to be in the same chromosome and the same arm. We make note of this by separating the two  cytoband regions with a semi-colon.  Lastly we rename the averaged multicolinear CNA with the representative interval name that spans two or more multicolinear CNA variables. 
 
 ```{r}
 toResolve <- namesMultiCol
@@ -770,22 +780,17 @@ nr_cytoband_ids <- as.character(tmp$nr)
 Format the CNA feature's genomic coordinates in the same fashion as the protein and mRNA features. 
 
 ```{r}
-cna_node_attributes <- data.frame(id = cnaids,
-                                 chr = paste0("chr", cnapos$ch.interval.iter2),
-                                 start =  cnapos$begin.nuc.iter2,
-                                 end = cnapos$end.nuc.iter2,
-                                 symbol = NA,
-                                 cyto = nr_cytoband_ids,
-                                 strand = NA, 
-                                 type  = "x", 
-                                 cytoscape = nr_cytoband_ids,
-                                 stringsAsFactors = FALSE)
+cna_node_attributes <- data.frame(id = cnaids, 
+                                  alias = nr_cytoband_ids,
+                                  chr = paste0("chr", cnapos$ch.interval.iter2),
+                                  start = as.integer(cnapos$begin.nuc.iter2),
+                                  end = as.integer(cnapos$end.nuc.iter2),
+                                  stringsAsFactors = FALSE)
 #combine genomic coordinates in the same manner as the CNA data (inclusive of  multicolinear features )
 cna_node_attributes2 <- cna_node_attributes[c(which(clout$cluster == 0), match(mcolinear, clout$cluster)),]
 rownames(cna_node_attributes2) <- cna_node_attributes2$id
 kable(head(cna_node_attributes2), row.names = F)
 ```
-
 
 Format the CNA data into an `ExpressionSet` object. Be sure to mean-center CNA features and scale by the standard deviation.
 
@@ -798,18 +803,19 @@ cnaset <- ExpressionSet(assayData = t(scale(t(cna))),
 cnaset
 ```
 
-### Save cleaned data. 
+## Save cleaned data. 
 
-Save the `ExpressionSet` objects, which contain the data to train the spaceMap model and perform downstream network analysis illustrated through `prot-net` and `RNA-net` examples in other sections of this website. 
+Save the `ExpressionSet` objects, which contain the data to train the spaceMap model and perform downstream network analysis illustrated in other sections of this website. 
 
-```{r, eval=FALSE}
-basedir2 <- "../data/"
+```{r}
+basedir2 <- "data/"
 saveRDS(rnaset, file = file.path(basedir2, "rna-expression-set.rds"))
 saveRDS(protset, file = file.path(basedir2, "prot-expression-set.rds"))
 saveRDS(cnaset, file = file.path(basedir2, "cna-expression-set.rds"))
 save(rnaset, protset, cnaset, file = file.path(basedir, "bccptac-expression-sets.RData"))
 save.image(file = file.path(basedir, "data-cleaning-environment.RData"))
 ```
+
 
 ## Next Step in Analysis
 

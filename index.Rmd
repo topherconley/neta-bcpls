@@ -1,15 +1,19 @@
 ---
-title: "A detailed application of spaceMap"
+title: "An application of spaceMap to BCPLS data"
 output:
   html_document:
     highlight: tango
 ---
 
-This webpage illustrates a detailed application of the [spaceMap network analysis pipeline](https://topherconley.github.io/spacemap/index.html) to real-world data from the [Breast Cancer Proteogenomics Landscape Study (BCPLS)](http://www.nature.com/nature/journal/v534/n7605/abs/nature18003.html). We show how to clean the data, fit spaceMap to learn networks, derive annotations, and ultimately layer biological meaning onto the model fit. Below, the flow chart provides an overview of each stage we will address in the pipeline: data, model fitting, network analysis, and visualization.
+This webpage illustrates a detailed application of the [spaceMap analysis pipeline](https://topherconley.github.io/spacemap/index.html) to the [Breast Cancer Proteogenomics Landscape Study (BCPLS)](http://www.nature.com/nature/journal/v534/n7605/abs/nature18003.html). We show how to [process data](https://topherconley.github.io/neta-bcpls/data.html), [infer networks](https://topherconley.github.io/neta-bcpls/mfits.html), [map annotations](https://topherconley.github.io/neta-bcpls/annot.html), and ultimately layer biological meaning onto the fitted networks through [a network analysis toolkit](https://topherconley.github.io/neta-bcpls/neta.html). The flow chart below provides an overview of each step we will address in the pipeline: data, model fitting, network analysis, and visualization.
 
 ![](figures/flow-chart-4.png)
 
-This specific application builds upon the original work of the BCPLS by performing an integrative analysis of copy number alterations (CNA) in breast tumors with corresponding protein expressions. The outcome of the integrative analysis is an annotated network revealing how CNA influence downstream protein-protein interactions of breast tumors. In addition to finding known amplifications and deletion signatures of CNA in breast cancer, the pipeline is able to link these CNA hubs to proteins enriched with cancer-related biological processes. All things considered, this pipeline exemplifies the power of reconstructing networks from data and leveraging bioinformatics toolkits to layer meaning onto the network. *Full commentary on the biological context of the BCPLS application is reserved exclusively for the spaceMap publication, which is currently under review*. 
+
+## Description 
+This application  performs an integrative analysis of copy number alterations (CNA),  protein expressions, and RNA expressions in breast tumors. The outcomes are annotated networks revealing how CNAs influence downstream expression nodes and their interactions. Specifically, this analysis links CNAs to protein/RNA expressions and finds CNA-hubs/modules that are enriched with cancer-related biological processes. In summary, this pipeline exemplifies the power of reconstructing networks from data and leveraging bioinformatics tools to layer meaning onto the network. 
+
+*Full commentary on the biological context of the BCPLS application is reserved exclusively for the spaceMap publication, which is currently under review*. 
 
 <!--
 
@@ -33,7 +37,7 @@ Deploying the network analysis toolkit is as simple as calling the `spacemap::ne
 
 ## R environment 
 
-In addition to installing the [spacemap package](https://topherconley.github.io/spacemap/), reproduction of the BCPLS network analysis will require installation of the following R packages. 
+In addition to installing the [spacemap package](https://topherconley.github.io/spacemap/), reproduction of the BCPLS data analysis will require installation of the following R packages: 
 
 ```{r, eval = FALSE}
 ## try http:// if https:// URLs are not supported

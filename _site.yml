@@ -3,7 +3,7 @@ output_dir: "docs"
 exclude: ["data", "data_files", "data_cache","model-fits", "neta", "neta_cache", "annot_cache"]
 navbar:
   left:
-    - text: "About"
+    - text: "Application"
       href: index.html
     - text: "BCPLS Data Analysis"
       menu:

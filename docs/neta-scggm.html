@@ -329,31 +329,25 @@ div.tocify {
 </div>
 
 
-<p>In Section 4 of the spaceMap publication we refer to applying the the network analysis toolkit to the BCPLS data set. The publication explains we applied the toolkit to three different networks. Below we outline how to view the analysis of each BCPLS network discussed in the spaceMap publication.</p>
-<ul>
-<li><em>prot-net:</em> a network learned by spaceMap’s Boot.Vote fit to the CNA and protein expressions data. The analysis was previously illustrated in the <em>spacemap</em> R package’s <a href="https://topherconley.github.io/spacemap/articles/neta.html">vignette</a>.</li>
-<li><em>scggm-net:</em> a network learned by scggm’s Boot.Vote fit to the CNA and protein expressions data. The details of applying the network analysis toolkit to <em>scggm-net</em> can be viewed by <a href="https://topherconley.github.io/neta-bcpls/neta-scggm.html">following this link</a>.</li>
-<li><em>RNA-net:</em> a network learned by spaceMap’s Boot.Vote fit to the CNA and mRNA expressions data of BCPLS. This current document illustrates analysis of <em>RNA-net</em> in full detail below.</li>
-</ul>
-<p>For more details about the fitting of the three networks consult the spaceMap publication. Please refer to the <a href="https://topherconley.github.io/spacemap/articles/neta.html">vignette</a> prior to inspecting the <em>RNA-net</em> analysis found here. All three network analyses share virtually identical analytical steps, but this document differs in the response data and only the vignette explains in-depth what are input arguments to the toolkit.</p>
+<p>Here we show how we applied the network analysis tolkit to <em>scggm-net</em>, a network that is described in Sections 4.2 and S.3.2 of the supplement to the spacemap publication. This document shares virtually identical analytical steps as the network analysis of <a href="https://topherconley.github.io/spacemap/articles/neta.html">spaceMap’s prot-net</a> and <a href="https://topherconley.github.io/neta-bcpls/neta.html">spaceMap’s RNA-net</a>.</p>
 <div id="input" class="section level2">
 <h2>Input</h2>
-<p>Load the gene coordinate annotations for mRNA expressions and genomic CNA.</p>
+<p>Load the gene coordinate annotations for protein expressions and genomic CNA.</p>
 <pre class="r"><code>library(Biobase)
-yinfo &lt;- pData(featureData(readRDS(file = &quot;data/rna-expression-set.rds&quot;)))
+yinfo &lt;- pData(featureData(readRDS(file = &quot;data/prot-expression-set.rds&quot;)))
 xinfo &lt;- pData(featureData(readRDS(file = &quot;data/cna-expression-set.rds&quot;)))</code></pre>
-<p>Load the <em>Boot.Vote</em> CNA-mRNA network.</p>
+<p>Load the <em>Boot.Vote</em> CNA-protein network.</p>
 <pre class="r"><code>library(Matrix)
-net &lt;- readRDS(file = &quot;model-fits/smap_rna_boot_vote.rds&quot;)
-names(net) &lt;- c(&quot;yy&quot;, &quot;xy&quot;)
+scggm &lt;- readRDS(file = &quot;model-fits/scggm_boot.rds&quot;)
+net &lt;- scggm[c(&quot;yy&quot;,&quot;xy&quot;)]
 rownames(net$xy) &lt;- xinfo$id; colnames(net$xy) &lt;- yinfo$id;
 rownames(net$yy) &lt;- yinfo$id; colnames(net$yy) &lt;- yinfo$id;</code></pre>
 <p>Load the degree distributions for the ensemble of bootstrapped networks.</p>
-<pre class="r"><code>bdeg &lt;- readRDS(file = &quot;model-fits/smap_rna_boot_degree.rds&quot;)
+<pre class="r"><code>bdeg &lt;- scggm[c(&quot;deg_xy&quot;, &quot;deg_yy&quot;)]
 names(bdeg) &lt;- c(&quot;xy&quot;, &quot;yy&quot;)
 colnames(bdeg$xy) &lt;- xinfo$id; colnames(bdeg$yy) &lt;- yinfo$id;</code></pre>
 <p>Load the Gene Ontology mappings for enrichment analysis.</p>
-<pre class="r"><code>go2eg &lt;- readRDS(&quot;data/rna-go-bp-to-entrez-gene-list.rds&quot;)
+<pre class="r"><code>go2eg &lt;- readRDS(&quot;data/prot-go-bp-to-entrez-gene-list.rds&quot;)
 library(AnnotationDbi)
 #human readable 
 process_alias &lt;- Term(names(go2eg))</code></pre>
@@ -365,15 +359,16 @@ process_alias &lt;- Term(names(go2eg))</code></pre>
 ig &lt;- spacemap::adj2igraph(yy = net$yy, xy = net$xy, yinfo = yinfo, xinfo = xinfo)</code></pre>
 <p>If we query the attribute names of the nodes in the graph, we notice that the columns of <code>xinfo</code> and <code>yinfo</code> have been applied.</p>
 <pre class="r"><code>vertex_attr_names(graph = ig)</code></pre>
-<pre><code>## [1] &quot;name&quot;   &quot;alias&quot;  &quot;chr&quot;    &quot;start&quot;  &quot;end&quot;    &quot;strand&quot; &quot;levels&quot;</code></pre>
+<pre><code>## [1] &quot;name&quot;        &quot;alias&quot;       &quot;chr&quot;         &quot;start&quot;       &quot;end&quot;        
+## [6] &quot;strand&quot;      &quot;description&quot; &quot;levels&quot;</code></pre>
 <p>The igraph package has a number of ways to access the annotation information. For example, if we wish to confirm the chromosome location of GRB7, we can easily query:</p>
 <pre class="r"><code>vertex_attr(graph = ig, name = &quot;chr&quot;, index = V(ig)[alias %in% &quot;GRB7&quot;])</code></pre>
 <pre><code>## [1] &quot;chr17&quot;</code></pre>
 </div>
 <div id="hub-analysis" class="section level2">
 <h2>Hub Analysis</h2>
-<p>We first prioritize the CNA- and mRNA- hubs. If the <code>bdeg</code> argument is specified, then we rank the hubs according to the average degree rank. Accordingly, the most highly ranked hubs will have the most consistently high degree across network ensemble.</p>
-<p>To rank the mRNA nodes, use the <code>rankHub</code> command and simply specify the <code>level = &quot;y&quot;</code> argument.</p>
+<p>We first prioritize the CNA- and protein- hubs. If the <code>bdeg</code> argument is specified, then we rank the hubs according to the average degree rank. Accordingly, the most highly ranked hubs will have the most consistently high degree across network ensemble.</p>
+<p>To rank the protein nodes, use the <code>rankHub</code> command and simply specify the <code>level = &quot;y&quot;</code> argument.</p>
 <pre class="r"><code>ig &lt;- rankHub(ig = ig, bdeg = bdeg$yy, level = &quot;y&quot;)</code></pre>
 <p>To rank the CNA nodes, specify the <code>level = &quot;x&quot;</code> argument.</p>
 <pre class="r"><code>ig &lt;- rankHub(ig = ig, bdeg = bdeg$xy, level = &quot;x&quot;)</code></pre>
@@ -388,7 +383,17 @@ ig &lt;- spacemap::adj2igraph(yy = net$yy, xy = net$xy, yinfo = yinfo, xinfo = x
 <div id="report" class="section level3">
 <h3>Report</h3>
 <p>We then report a well-organized table, as seen in Table 3 of the spaceMap publication. The <code>top</code> argument allows us to control how many hubs are displayed.</p>
-<pre class="r"><code>xhubs &lt;- reportHubs(ig, top = 30, level = &quot;x&quot;)</code></pre>
+<pre class="r"><code>xhubs &lt;- reportHubs(ig, top = 40, level = &quot;x&quot;)</code></pre>
+<pre class="r"><code>vidx &lt;- V(ig)[match(rownames(xhubs), V(ig)$name)]
+m &lt;- vertex_attr(graph = ig, name = &quot;mean_rank_hub&quot;, index = vidx)
+s &lt;- vertex_attr(graph = ig, name = &quot;sd_rank_hub&quot;, index = vidx)
+st &lt;- vertex_attr(graph = ig, name = &quot;start&quot;, index = vidx)
+end &lt;- vertex_attr(graph = ig, name = &quot;end&quot;, index = vidx)
+rnk &lt;- paste0(round(m, 2), &quot; (&quot;, round(s,2), &quot;)&quot;)
+xhubs$`cis genes`
+tosupp &lt;- cbind(xhubs$hub, st, end, xhubs$`# cis/ # trans`, xhubs$`Potential # cis`, xhubs$`cis genes`, rnk)
+library(xtable)
+print(xtable(tosupp), include.rownames = FALSE)</code></pre>
 <table>
 <thead>
 <tr class="header">
@@ -400,257 +405,315 @@ ig &lt;- spacemap::adj2igraph(yy = net$yy, xy = net$xy, yinfo = yinfo, xinfo = x
 </thead>
 <tbody>
 <tr class="odd">
-<td align="left">5q34 (160-170 Mb)</td>
-<td align="left">0 / 188</td>
-<td align="right">4</td>
+<td align="left">16q22.1-22.2 (68-71 Mb)</td>
+<td align="left">0 / 17</td>
+<td align="right">13</td>
+<td align="left">–</td>
+</tr>
+<tr class="even">
+<td align="left">17q12 (38-38 Mb)</td>
+<td align="left">4 / 6</td>
+<td align="right">29</td>
+<td align="left">ERBB2, GRB7, PNMT, MIEN1</td>
+</tr>
+<tr class="odd">
+<td align="left">16q21-22.1 (64-68 Mb)</td>
+<td align="left">0 / 4</td>
+<td align="right">8</td>
 <td align="left">–</td>
 </tr>
 <tr class="even">
 <td align="left">10p15.1-15.3 (0.42-4 Mb)</td>
-<td align="left">0 / 55</td>
-<td align="right">7</td>
-<td align="left">–</td>
-</tr>
-<tr class="odd">
-<td align="left">17q12 (38-38 Mb)</td>
-<td align="left">4 / 36</td>
-<td align="right">24</td>
-<td align="left">PNMT, ERBB2, TCAP, GRB7</td>
-</tr>
-<tr class="even">
-<td align="left">10p14-15.1 (4-12 Mb)</td>
-<td align="left">1 / 61</td>
-<td align="right">9</td>
-<td align="left">FLJ45983</td>
-</tr>
-<tr class="odd">
-<td align="left">5q14.3 (88-89 Mb)</td>
-<td align="left">0 / 97</td>
-<td align="right">1</td>
-<td align="left">–</td>
-</tr>
-<tr class="even">
-<td align="left">5q14.3 (89-91 Mb)</td>
-<td align="left">0 / 72</td>
-<td align="right">1</td>
-<td align="left">–</td>
-</tr>
-<tr class="odd">
-<td align="left">9p22.3-23 (9.4-15 Mb)</td>
-<td align="left">2 / 36</td>
-<td align="right">5</td>
-<td align="left">SH3GL2, GLDC</td>
-</tr>
-<tr class="even">
-<td align="left">8q21.2-22.1 (87-96 Mb)</td>
-<td align="left">0 / 17</td>
-<td align="right">5</td>
-<td align="left">–</td>
-</tr>
-<tr class="odd">
-<td align="left">10p11.1-10q11.21 (39-43 Mb)</td>
-<td align="left">0 / 8</td>
-<td align="right">7</td>
-<td align="left">–</td>
-</tr>
-<tr class="even">
-<td align="left">1p22.2-22.3 (86-90 Mb)</td>
 <td align="left">0 / 12</td>
-<td align="right">8</td>
+<td align="right">10</td>
 <td align="left">–</td>
 </tr>
 <tr class="odd">
-<td align="left">15q13.1-15.1 (29-43 Mb)</td>
-<td align="left">0 / 7</td>
-<td align="right">10</td>
+<td align="left">5p12-5q11.1 (45-50 Mb)</td>
+<td align="left">0 / 13</td>
+<td align="right">4</td>
 <td align="left">–</td>
 </tr>
 <tr class="even">
 <td align="left">16q23.1-24.3 (78-89 Mb)</td>
 <td align="left">0 / 6</td>
-<td align="right">10</td>
-<td align="left">–</td>
-</tr>
-<tr class="odd">
-<td align="left">9p21.3-22.3 (15-20 Mb)</td>
-<td align="left">0 / 7</td>
-<td align="right">7</td>
-<td align="left">–</td>
-</tr>
-<tr class="even">
-<td align="left">5q34 (170-170 Mb)</td>
-<td align="left">0 / 8</td>
-<td align="right">4</td>
-<td align="left">–</td>
-</tr>
-<tr class="odd">
-<td align="left">14q11.2-12 (22-26 Mb)</td>
-<td align="left">0 / 2</td>
 <td align="right">11</td>
 <td align="left">–</td>
 </tr>
+<tr class="odd">
+<td align="left">17p11.2 (20-20 Mb)</td>
+<td align="left">1 / 5</td>
+<td align="right">16</td>
+<td align="left">SHMT1</td>
+</tr>
 <tr class="even">
-<td align="left">5q35.2 (170-180 Mb)</td>
-<td align="left">0 / 2</td>
+<td align="left">5q35.3 (180-180 Mb)</td>
+<td align="left">0 / 6</td>
 <td align="right">6</td>
 <td align="left">–</td>
 </tr>
 <tr class="odd">
-<td align="left">16q22.1-22.2 (68-71 Mb)</td>
+<td align="left">16p12.1-12.3 (19-27 Mb)</td>
+<td align="left">1 / 5</td>
+<td align="right">19</td>
+<td align="left">DCTPP1</td>
+</tr>
+<tr class="even">
+<td align="left">17p11.2 (20-21 Mb)</td>
+<td align="left">0 / 10</td>
+<td align="right">16</td>
+<td align="left">–</td>
+</tr>
+<tr class="odd">
+<td align="left">16q12.1 (51-53 Mb)</td>
+<td align="left">0 / 1</td>
+<td align="right">6</td>
+<td align="left">–</td>
+</tr>
+<tr class="even">
+<td align="left">15q13.1-15.1 (29-43 Mb)</td>
+<td align="left">1 / 1</td>
+<td align="right">20</td>
+<td align="left">IVD</td>
+</tr>
+<tr class="odd">
+<td align="left">1q21.2-23.1 (150-160 Mb)</td>
+<td align="left">0 / 1</td>
+<td align="right">47</td>
+<td align="left">–</td>
+</tr>
+<tr class="even">
+<td align="left">17p11.2-12 (14-19 Mb)</td>
+<td align="left">0 / 5</td>
+<td align="right">17</td>
+<td align="left">–</td>
+</tr>
+<tr class="odd">
+<td align="left">16q22.1 (68-68 Mb)</td>
+<td align="left">0 / 8</td>
+<td align="right">8</td>
+<td align="left">–</td>
+</tr>
+<tr class="even">
+<td align="left">19p13.3 (1.9-2.4 Mb)</td>
+<td align="left">0 / 2</td>
+<td align="right">16</td>
+<td align="left">–</td>
+</tr>
+<tr class="odd">
+<td align="left">16q22.2-22.3 (72-73 Mb)</td>
+<td align="left">0 / 1</td>
+<td align="right">10</td>
+<td align="left">–</td>
+</tr>
+<tr class="even">
+<td align="left">16p11.2-12.1 (27-32 Mb)</td>
+<td align="left">1 / 0</td>
+<td align="right">18</td>
+<td align="left">DCTPP1</td>
+</tr>
+<tr class="odd">
+<td align="left">8q21.2-22.1 (87-96 Mb)</td>
+<td align="left">0 / 1</td>
+<td align="right">13</td>
+<td align="left">–</td>
+</tr>
+<tr class="even">
+<td align="left">5q14.3 (88-89 Mb)</td>
+<td align="left">0 / 6</td>
+<td align="right">2</td>
+<td align="left">–</td>
+</tr>
+<tr class="odd">
+<td align="left">5q35.2-35.3 (180-180 Mb)</td>
+<td align="left">0 / 3</td>
+<td align="right">8</td>
+<td align="left">–</td>
+</tr>
+<tr class="even">
+<td align="left">5q34 (160-170 Mb)</td>
+<td align="left">0 / 21</td>
+<td align="right">0</td>
+<td align="left">–</td>
+</tr>
+<tr class="odd">
+<td align="left">16q21 (63-64 Mb)</td>
+<td align="left">0 / 1</td>
+<td align="right">4</td>
+<td align="left">–</td>
+</tr>
+<tr class="even">
+<td align="left">16q12.1 (49-51 Mb)</td>
+<td align="left">0 / 3</td>
+<td align="right">5</td>
+<td align="left">–</td>
+</tr>
+<tr class="odd">
+<td align="left">17q11.2 (28-29 Mb)</td>
+<td align="left">3 / 0</td>
+<td align="right">14</td>
+<td align="left">KRT23, BLMH, NSRP1</td>
+</tr>
+<tr class="even">
+<td align="left">8q24.3 (140-150 Mb)</td>
+<td align="left">1 / 2</td>
+<td align="right">7</td>
+<td align="left">THEM6</td>
+</tr>
+<tr class="odd">
+<td align="left">8p11.23 (38-38 Mb)</td>
 <td align="left">0 / 1</td>
 <td align="right">9</td>
 <td align="left">–</td>
 </tr>
+<tr class="even">
+<td align="left">11q22.2-22.3 (100-100 Mb)</td>
+<td align="left">0 / 4</td>
+<td align="right">4</td>
+<td align="left">–</td>
+</tr>
+<tr class="odd">
+<td align="left">17p11.2 (19-19 Mb)</td>
+<td align="left">0 / 4</td>
+<td align="right">16</td>
+<td align="left">–</td>
+</tr>
+<tr class="even">
+<td align="left">17q21.32 (46-46 Mb)</td>
+<td align="left">2 / 2</td>
+<td align="right">15</td>
+<td align="left">MAPT, MAPT</td>
+</tr>
+<tr class="odd">
+<td align="left">17p11.2 (19-20 Mb)</td>
+<td align="left">0 / 1</td>
+<td align="right">16</td>
+<td align="left">–</td>
+</tr>
+<tr class="even">
+<td align="left">11q22.1 (100-100 Mb)</td>
+<td align="left">0 / 2</td>
+<td align="right">3</td>
+<td align="left">–</td>
+</tr>
+<tr class="odd">
+<td align="left">9p13.3 (33-34 Mb)</td>
+<td align="left">0 / 1</td>
+<td align="right">9</td>
+<td align="left">–</td>
+</tr>
+<tr class="even">
+<td align="left">11q14.3 (89-91 Mb)</td>
+<td align="left">0 / 1</td>
+<td align="right">5</td>
+<td align="left">–</td>
+</tr>
+<tr class="odd">
+<td align="left">17q12 (38-38 Mb)</td>
+<td align="left">2 / 3</td>
+<td align="right">29</td>
+<td align="left">GRB7, MIEN1</td>
+</tr>
+<tr class="even">
+<td align="left">22q13.1-13.2 (40-41 Mb)</td>
+<td align="left">0 / 2</td>
+<td align="right">7</td>
+<td align="left">–</td>
+</tr>
+<tr class="odd">
+<td align="left">5q35.2 (170-180 Mb)</td>
+<td align="left">0 / 3</td>
+<td align="right">8</td>
+<td align="left">–</td>
+</tr>
+<tr class="even">
+<td align="left">9p13.3 (34-36 Mb)</td>
+<td align="left">0 / 4</td>
+<td align="right">9</td>
+<td align="left">–</td>
+</tr>
+<tr class="odd">
+<td align="left">5q34 (170-170 Mb)</td>
+<td align="left">0 / 1</td>
+<td align="right">0</td>
+<td align="left">–</td>
+</tr>
+<tr class="even">
+<td align="left">11p15.2 (13-14 Mb)</td>
+<td align="left">0 / 3</td>
+<td align="right">1</td>
+<td align="left">–</td>
+</tr>
 </tbody>
 </table>
-<p>Similarly, we can report the top 10 mRNA hubs, their degrees in the final network, and a description of each hub, if the <code>description</code> column was specified in <code>yinfo</code>.</p>
+<p>Similarly, we can report the top 10 protein hubs, their degrees in the final network, and a description of each hub, if the <code>description</code> column was specified in <code>yinfo</code>.</p>
 <pre class="r"><code>yhubs &lt;- reportHubs(ig, top = 10, level = &quot;y&quot;)</code></pre>
 <table>
 <thead>
 <tr class="header">
 <th align="left">hub</th>
 <th align="right">degree</th>
+<th align="left">description</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td align="left">FOXA1</td>
-<td align="right">7</td>
+<td align="left">PLIN1</td>
+<td align="right">13</td>
+<td align="left">perilipin-1</td>
 </tr>
 <tr class="even">
-<td align="left">DARC</td>
-<td align="right">9</td>
+<td align="left">ADH1B</td>
+<td align="right">10</td>
+<td align="left">alcohol dehydrogenase 1B</td>
 </tr>
 <tr class="odd">
-<td align="left">ESR1</td>
-<td align="right">9</td>
+<td align="left">PDLIM7</td>
+<td align="right">8</td>
+<td align="left">PDZ and LIM domain protein 7 isoform 4</td>
 </tr>
 <tr class="even">
-<td align="left">COL10A1</td>
-<td align="right">7</td>
+<td align="left">GPD1</td>
+<td align="right">13</td>
+<td align="left">glycerol-3-phosphate dehydrogenase</td>
 </tr>
 <tr class="odd">
-<td align="left">FOXC1</td>
-<td align="right">9</td>
+<td align="left">PDLIM7</td>
+<td align="right">11</td>
+<td align="left">PDZ and LIM domain protein 7 isoform 1</td>
 </tr>
 <tr class="even">
-<td align="left">SFRP1</td>
-<td align="right">6</td>
+<td align="left">EHD2</td>
+<td align="right">23</td>
+<td align="left">EH domain-containing protein 2</td>
 </tr>
 <tr class="odd">
-<td align="left">SPDEF</td>
-<td align="right">5</td>
+<td align="left">KNG1</td>
+<td align="right">28</td>
+<td align="left">kininogen-1 isoform 1 precursor</td>
 </tr>
 <tr class="even">
-<td align="left">FAT2</td>
-<td align="right">6</td>
+<td align="left">KNG1</td>
+<td align="right">26</td>
+<td align="left">kininogen-1 isoform 2 precursor</td>
 </tr>
 <tr class="odd">
-<td align="left">GABRP</td>
-<td align="right">4</td>
+<td align="left">ITIH4</td>
+<td align="right">19</td>
+<td align="left">inter-alpha-trypsin inhibitor heavy chain H4 isoform 2 precursor</td>
 </tr>
 <tr class="even">
-<td align="left">TRIM29</td>
-<td align="right">7</td>
+<td align="left">ITIH4</td>
+<td align="right">17</td>
+<td align="left">inter-alpha-trypsin inhibitor heavy chain H4 isoform 1 precursor</td>
 </tr>
 </tbody>
 </table>
 </div>
 <div id="go-neighbor-percentage" class="section level3">
 <h3>GO-neighbor percentage</h3>
-<p>A <em>CNA neighborhood</em> comprises all mRNA nodes that are directly connected to a CNA hub by an edge. CNA neighborhoods represent direct perturbations to the proteome by amplifications or deletions in the DNA. To quantify their functional relevance, we compute a score called the <em>GO-neighbor percentage</em>. Two mRNA nodes are called GO-neighbors if they share a common GO term in the same CNA neighborhood. We postulate that a high percentage of GO-neighbors within a CNA neighborhood associates the CNA hub with more functional meaning. These scores, as presented in Figure 5 of the publication, can be generated with a GO mapping to the mRNAs as follows.</p>
+<p>A <em>CNA neighborhood</em> comprises all protein nodes that are directly connected to a CNA hub by an edge. CNA neighborhoods represent direct perturbations to the proteome by amplifications or deletions in the DNA. To quantify their functional relevance, we compute a score called the <em>GO-neighbor percentage</em>. Two protein nodes are called GO-neighbors if they share a common GO term in the same CNA neighborhood. We postulate that a high percentage of GO-neighbors within a CNA neighborhood associates the CNA hub with more functional meaning. These scores can be generated with a GO mapping to the proteins as follows.</p>
 <pre class="r"><code>hgp &lt;- xHubEnrich(ig = ig, go2eg = go2eg)</code></pre>
-<table>
-<thead>
-<tr class="header">
-<th align="left">hub</th>
-<th align="right">degree</th>
-<th align="right">neighbor_percentage</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td align="left">1p22.2-22.3</td>
-<td align="right">12</td>
-<td align="right">33.33333</td>
-</tr>
-<tr class="even">
-<td align="left">10p11.1-10q11.21</td>
-<td align="right">8</td>
-<td align="right">62.50000</td>
-</tr>
-<tr class="odd">
-<td align="left">10p14-15.1</td>
-<td align="right">62</td>
-<td align="right">54.83871</td>
-</tr>
-<tr class="even">
-<td align="left">10p15.1-15.3</td>
-<td align="right">55</td>
-<td align="right">50.90909</td>
-</tr>
-<tr class="odd">
-<td align="left">14q11.2-12</td>
-<td align="right">2</td>
-<td align="right">0.00000</td>
-</tr>
-<tr class="even">
-<td align="left">15q13.1-15.1</td>
-<td align="right">7</td>
-<td align="right">0.00000</td>
-</tr>
-<tr class="odd">
-<td align="left">16q23.1-24.3</td>
-<td align="right">6</td>
-<td align="right">33.33333</td>
-</tr>
-<tr class="even">
-<td align="left">17q12</td>
-<td align="right">40</td>
-<td align="right">65.00000</td>
-</tr>
-<tr class="odd">
-<td align="left">5q34</td>
-<td align="right">188</td>
-<td align="right">66.48936</td>
-</tr>
-<tr class="even">
-<td align="left">5q34</td>
-<td align="right">8</td>
-<td align="right">25.00000</td>
-</tr>
-<tr class="odd">
-<td align="left">5q35.2</td>
-<td align="right">2</td>
-<td align="right">0.00000</td>
-</tr>
-<tr class="even">
-<td align="left">5q14.3</td>
-<td align="right">97</td>
-<td align="right">64.94845</td>
-</tr>
-<tr class="odd">
-<td align="left">5q14.3</td>
-<td align="right">72</td>
-<td align="right">54.16667</td>
-</tr>
-<tr class="even">
-<td align="left">8q21.2-22.1</td>
-<td align="right">17</td>
-<td align="right">64.70588</td>
-</tr>
-<tr class="odd">
-<td align="left">9p21.3-22.3</td>
-<td align="right">7</td>
-<td align="right">42.85714</td>
-</tr>
-<tr class="even">
-<td align="left">9p22.3-23</td>
-<td align="right">38</td>
-<td align="right">57.89474</td>
-</tr>
-</tbody>
-</table>
 </div>
 </div>
 <div id="module-analysis" class="section level2">
@@ -660,8 +723,8 @@ ig &lt;- spacemap::adj2igraph(yy = net$yy, xy = net$xy, yinfo = yinfo, xinfo = x
 <pre class="r"><code>library(igraph)
 mods &lt;- cluster_edge_betweenness(ig)</code></pre>
 <p>The main goal of module analysis is identifying modules that are functionally enriched. The <code>modEnrich</code> function will test for significantly over-represented GO-terms (or any other valid functional grouping) within a module using hyper-geometric tests.</p>
-<p>In the current example, only the mRNA nodes have functional mapping and we specify this through the <code>levels = &quot;y&quot;</code> argument. If both predictors and responses have functional mapping in the <code>go2eg</code> argument, then we can specify <code>levels = c(&quot;y&quot;,&quot;x&quot;)</code>. Other arguments are available to control the enrichment testing; see <a href="https://topherconley.github.io/spacemap/reference/modEnrich.html">modEnrich</a> for more details.</p>
-<pre class="r"><code>outmod &lt;- modEnrich(ig = ig, mods = mods, levels = &quot;y&quot;, go2eg = go2eg, process_alias = process_alias, prefix = &quot;R&quot;)</code></pre>
+<p>In the current example, only the protein nodes have functional mapping and we specify this through the <code>levels = &quot;y&quot;</code> argument. If both predictors and responses have functional mapping in the <code>go2eg</code> argument, then we can specify <code>levels = c(&quot;y&quot;,&quot;x&quot;)</code>. Other arguments are available to control the enrichment testing; see <a href="https://topherconley.github.io/spacemap/reference/modEnrich.html">modEnrich</a> for more details.</p>
+<pre class="r"><code>outmod &lt;- modEnrich(ig = ig, mods = mods, levels = &quot;y&quot;, go2eg = go2eg, process_alias = process_alias, prefix = &quot;C&quot;)</code></pre>
 <p>The output of the module analysis is a list of 3 objects.</p>
 <pre class="r"><code>names(outmod)</code></pre>
 <pre><code>## [1] &quot;ig&quot;   &quot;etab&quot; &quot;eraw&quot;</code></pre>
@@ -669,7 +732,7 @@ mods &lt;- cluster_edge_betweenness(ig)</code></pre>
 <li><p><code>ig</code> is the input igraph network object updated with a “process_id” attribute for nodes affiliated with a significant GO-term. The “process_id” and “module” attributes together are useful for visualizing which nodes are enriched for a specific biological function.</p></li>
 <li><p><code>etab</code> is the polished module enrichment table to report significant GO terms, the representation of the GO term in the module relative to the size of the GO term, and which CNA hubs belong to the module. The top ten hits as in Table S.9 of the spaceMap publication’s supplementary materials are as follows:</p></li>
 </ul>
-<pre class="r"><code>outmod$etab[1:10,]</code></pre>
+<pre class="r"><code>outmod$etab[1:20,]</code></pre>
 <table>
 <thead>
 <tr class="header">
@@ -681,63 +744,123 @@ mods &lt;- cluster_edge_betweenness(ig)</code></pre>
 </thead>
 <tbody>
 <tr class="odd">
-<td align="left">R10 (56)</td>
-<td align="left">glucose homeostasis</td>
-<td align="left">6/16</td>
+<td align="left">C10 (21)</td>
+<td align="left">extracellular matrix organization</td>
+<td align="left">11/125</td>
 <td align="left"></td>
 </tr>
 <tr class="even">
 <td align="left"></td>
-<td align="left">chemokine-mediated signaling pathway</td>
-<td align="left">6/23</td>
+<td align="left">glycosaminoglycan metabolic process</td>
+<td align="left">5/15</td>
 <td align="left"></td>
 </tr>
 <tr class="odd">
 <td align="left"></td>
-<td align="left">response to lipopolysaccharide</td>
-<td align="left">6/33</td>
-<td align="left"></td>
-</tr>
-<tr class="even">
-<td align="left"></td>
-<td align="left">inflammatory response</td>
-<td align="left">8/60</td>
-<td align="left"></td>
-</tr>
-<tr class="odd">
-<td align="left">R11 (37)</td>
-<td align="left">adaptive immune response</td>
-<td align="left">6/23</td>
-<td align="left"></td>
-</tr>
-<tr class="even">
-<td align="left"></td>
-<td align="left">immune response</td>
-<td align="left">8/59</td>
-<td align="left"></td>
-</tr>
-<tr class="odd">
-<td align="left">R13 (39)</td>
-<td align="left">epidermis development</td>
-<td align="left">8/22</td>
-<td align="left"></td>
-</tr>
-<tr class="even">
-<td align="left">R6 (32)</td>
-<td align="left">heart development</td>
-<td align="left">5/23</td>
-<td align="left">16q23.1-24.3 (6)</td>
-</tr>
-<tr class="odd">
-<td align="left">R7 (67)</td>
-<td align="left">cellular nitrogen compound metabolic process</td>
-<td align="left">6/27</td>
-<td align="left">17q12 (38)</td>
-</tr>
-<tr class="even">
-<td align="left">R8 (66)</td>
 <td align="left">collagen catabolic process</td>
-<td align="left">7/19</td>
+<td align="left">6/29</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left"></td>
+<td align="left">extracellular matrix disassembly</td>
+<td align="left">7/57</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left"></td>
+<td align="left">cell adhesion</td>
+<td align="left">8/105</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left"></td>
+<td align="left">carbohydrate metabolic process</td>
+<td align="left">5/43</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left"></td>
+<td align="left">axon guidance</td>
+<td align="left">5/58</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left"></td>
+<td align="left">cytokine-mediated signaling pathway</td>
+<td align="left">5/59</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">C4 (17)</td>
+<td align="left">ER to Golgi vesicle-mediated transport</td>
+<td align="left">5/20</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left"></td>
+<td align="left">protein N-linked glycosylation via asparagine</td>
+<td align="left">5/20</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left"></td>
+<td align="left">membrane organization</td>
+<td align="left">5/23</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left"></td>
+<td align="left">post-translational protein modification</td>
+<td align="left">5/43</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left"></td>
+<td align="left">axon guidance</td>
+<td align="left">5/58</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left"></td>
+<td align="left">cellular protein metabolic process</td>
+<td align="left">6/99</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">C5 (34)</td>
+<td align="left">muscle organ development</td>
+<td align="left">5/17</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left"></td>
+<td align="left">cell-matrix adhesion</td>
+<td align="left">5/35</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">C6 (68)</td>
+<td align="left">transcription from RNA polymerase II promoter</td>
+<td align="left">8/20</td>
+<td align="left">5q34 (20); 10p15.1-15.3 (12)</td>
+</tr>
+<tr class="even">
+<td align="left"></td>
+<td align="left">positive regulation of transcription from RNA polymerase II promoter</td>
+<td align="left">9/52</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">C7 (47)</td>
+<td align="left">muscle contraction</td>
+<td align="left">13/26</td>
+<td align="left">6q25.3 (5)</td>
+</tr>
+<tr class="even">
+<td align="left"></td>
+<td align="left">movement of cell or subcellular component</td>
+<td align="left">7/15</td>
 <td align="left"></td>
 </tr>
 </tbody>
@@ -759,44 +882,44 @@ mods &lt;- cluster_edge_betweenness(ig)</code></pre>
 </thead>
 <tbody>
 <tr class="odd">
-<td align="left">R1</td>
-<td align="left"><a href="GO:0007568" class="uri">GO:0007568</a></td>
-<td align="left">aging</td>
-<td align="left">2/23</td>
-<td align="right">0.0173451</td>
-<td align="right">0.5671556</td>
+<td align="left">C1</td>
+<td align="left"><a href="GO:0007596" class="uri">GO:0007596</a></td>
+<td align="left">blood coagulation</td>
+<td align="left">5/105</td>
+<td align="right">0.0019854</td>
+<td align="right">0.0675412</td>
 </tr>
 <tr class="even">
-<td align="left">R1</td>
-<td align="left"><a href="GO:0043066" class="uri">GO:0043066</a></td>
-<td align="left">negative regulation of apoptotic process</td>
-<td align="left">2/38</td>
-<td align="right">0.0445685</td>
-<td align="right">0.8834413</td>
+<td align="left">C1</td>
+<td align="left"><a href="GO:0002576" class="uri">GO:0002576</a></td>
+<td align="left">platelet degranulation</td>
+<td align="left">3/35</td>
+<td align="right">0.0036786</td>
+<td align="right">0.1089927</td>
 </tr>
 <tr class="odd">
-<td align="left">R1</td>
-<td align="left"><a href="GO:0000122" class="uri">GO:0000122</a></td>
-<td align="left">negative regulation of transcription from RNA polymerase II promoter</td>
-<td align="left">0/58</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0000000</td>
+<td align="left">C1</td>
+<td align="left"><a href="GO:0001889" class="uri">GO:0001889</a></td>
+<td align="left">liver development</td>
+<td align="left">2/16</td>
+<td align="right">0.0091840</td>
+<td align="right">0.2219862</td>
 </tr>
 <tr class="even">
-<td align="left">R1</td>
-<td align="left"><a href="GO:0000165" class="uri">GO:0000165</a></td>
-<td align="left">MAPK cascade</td>
-<td align="left">0/30</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0000000</td>
+<td align="left">C1</td>
+<td align="left"><a href="GO:0030168" class="uri">GO:0030168</a></td>
+<td align="left">platelet activation</td>
+<td align="left">3/51</td>
+<td align="right">0.0106856</td>
+<td align="right">0.2467104</td>
 </tr>
 <tr class="odd">
-<td align="left">R1</td>
-<td align="left"><a href="GO:0000186" class="uri">GO:0000186</a></td>
-<td align="left">activation of MAPKK activity</td>
-<td align="left">0/25</td>
-<td align="right">1.0000000</td>
-<td align="right">1.0000000</td>
+<td align="left">C1</td>
+<td align="left"><a href="GO:0051260" class="uri">GO:0051260</a></td>
+<td align="left">protein homooligomerization</td>
+<td align="left">2/20</td>
+<td align="right">0.0142285</td>
+<td align="right">0.2774912</td>
 </tr>
 </tbody>
 </table>
@@ -804,7 +927,7 @@ mods &lt;- cluster_edge_betweenness(ig)</code></pre>
 <div id="export-for-visualization" class="section level2">
 <h2>Export for Visualization</h2>
 <p>There are many tools for network visualization. In the publication of spaceMap, we exported the annotated <em>igraph</em> network object <code>ig</code> to the “graphml” format, which maintained all the attributes associated with nodes when read into <em>Cytoscape</em> for visualization.</p>
-<pre class="r"><code>filename &lt;- &quot;~/repos/neta-bcpls/neta/spacemap-rna-boot-vote.graphml&quot;
+<pre class="r"><code>filename &lt;- &quot;~/repos/neta-bcpls/neta/spacemap-scggm-boot-vote.graphml&quot;
 #delete nodes without edges from the graph object
 vis &lt;- delete_vertices(graph = outmod$ig, v = V(outmod$ig)[igraph::degree(outmod$ig) == 0])
 igraph::write_graph(graph = vis, file = filename, format = &quot;graphml&quot;)</code></pre>
@@ -812,10 +935,10 @@ igraph::write_graph(graph = vis, file = filename, format = &quot;graphml&quot;)<
 <pre class="r"><code>vertex_attr_names(outmod$ig)</code></pre>
 <pre><code>##  [1] &quot;name&quot;             &quot;alias&quot;            &quot;chr&quot;             
 ##  [4] &quot;start&quot;            &quot;end&quot;              &quot;strand&quot;          
-##  [7] &quot;levels&quot;           &quot;rank_hub&quot;         &quot;mean_rank_hub&quot;   
-## [10] &quot;sd_rank_hub&quot;      &quot;ncis&quot;             &quot;ntrans&quot;          
-## [13] &quot;regulates_in_cis&quot; &quot;potential_cis&quot;    &quot;module&quot;          
-## [16] &quot;process_id&quot;</code></pre>
+##  [7] &quot;description&quot;      &quot;levels&quot;           &quot;rank_hub&quot;        
+## [10] &quot;mean_rank_hub&quot;    &quot;sd_rank_hub&quot;      &quot;ncis&quot;            
+## [13] &quot;ntrans&quot;           &quot;regulates_in_cis&quot; &quot;potential_cis&quot;   
+## [16] &quot;module&quot;           &quot;process_id&quot;</code></pre>
 <p>We describe some of the most useful attributes for visualization:</p>
 <ul>
 <li>‘name’: the unique node ID</li>

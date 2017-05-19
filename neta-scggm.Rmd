@@ -13,38 +13,24 @@ library(knitr)
 opts_chunk$set(message=F, warning=F)
 ```
 
-In Section 4 of the spaceMap publication we refer to applying the the network analysis toolkit to the BCPLS data set. The publication explains we applied the toolkit to three different networks. Below we outline how to view the analysis of each BCPLS network discussed in the spaceMap publication. 
-
-+ *prot-net:* a network learned by spaceMap's Boot.Vote fit to the 
-  CNA and protein expressions data. The analysis was previously 
-  illustrated in the *spacemap* R package's 
-  [vignette](https://topherconley.github.io/spacemap/articles/neta.html). 
-+ *scggm-net:* a network learned by scggm's Boot.Vote fit to the 
-  CNA and protein expressions data.
-  The details of applying the network analysis toolkit to *scggm-net* can be viewed by 
-  [following this link](https://topherconley.github.io/neta-bcpls/neta-scggm.html). 
-+ *RNA-net:* a network learned by spaceMap's Boot.Vote fit to the 
-  CNA and mRNA expressions data of BCPLS. This current document illustrates analysis of *RNA-net*
-  in full detail below.
-  
-For more details about the fitting of the three networks consult the spaceMap publication. Please refer to the [vignette](https://topherconley.github.io/spacemap/articles/neta.html) prior to inspecting the *RNA-net* analysis found here. All three network analyses share virtually identical analytical steps, but this document differs in the response data and only the vignette explains in-depth what are input arguments to the toolkit. 
+Here we show how we applied the network analysis tolkit to *scggm-net*, a network that is described in Sections 4.2 and S.3.2 of the supplement to the spacemap publication. This document shares virtually identical analytical steps as the network analysis of  [spaceMap's prot-net](https://topherconley.github.io/spacemap/articles/neta.html) and [spaceMap's RNA-net](https://topherconley.github.io/neta-bcpls/neta.html). 
 
 ## Input
 
-Load the gene coordinate annotations for mRNA expressions and genomic CNA.
+Load the gene coordinate annotations for protein expressions and genomic CNA.
 
 ```{r}
 library(Biobase)
-yinfo <- pData(featureData(readRDS(file = "data/rna-expression-set.rds")))
+yinfo <- pData(featureData(readRDS(file = "data/prot-expression-set.rds")))
 xinfo <- pData(featureData(readRDS(file = "data/cna-expression-set.rds")))
 ```
 
-Load the *Boot.Vote* CNA-mRNA network. 
+Load the *Boot.Vote* CNA-protein network. 
 
 ```{r}
 library(Matrix)
-net <- readRDS(file = "model-fits/smap_rna_boot_vote.rds")
-names(net) <- c("yy", "xy")
+scggm <- readRDS(file = "model-fits/scggm_boot.rds")
+net <- scggm[c("yy","xy")]
 rownames(net$xy) <- xinfo$id; colnames(net$xy) <- yinfo$id;
 rownames(net$yy) <- yinfo$id; colnames(net$yy) <- yinfo$id;
 ```
@@ -52,7 +38,7 @@ rownames(net$yy) <- yinfo$id; colnames(net$yy) <- yinfo$id;
 Load the degree distributions for the ensemble of bootstrapped networks. 
 
 ```{r}
-bdeg <- readRDS(file = "model-fits/smap_rna_boot_degree.rds")
+bdeg <- scggm[c("deg_xy", "deg_yy")]
 names(bdeg) <- c("xy", "yy")
 colnames(bdeg$xy) <- xinfo$id; colnames(bdeg$yy) <- yinfo$id;
 ```
@@ -60,7 +46,7 @@ colnames(bdeg$xy) <- xinfo$id; colnames(bdeg$yy) <- yinfo$id;
 Load the Gene Ontology mappings for enrichment analysis. 
 
 ```{r}
-go2eg <- readRDS("data/rna-go-bp-to-entrez-gene-list.rds")
+go2eg <- readRDS("data/prot-go-bp-to-entrez-gene-list.rds")
 library(AnnotationDbi)
 #human readable 
 process_alias <- Term(names(go2eg))
@@ -89,9 +75,9 @@ vertex_attr(graph = ig, name = "chr", index = V(ig)[alias %in% "GRB7"])
 ```
 
 ## Hub Analysis
-We first prioritize the CNA- and mRNA- hubs. If  the `bdeg` argument is specified, then we rank the hubs according to the average degree rank. Accordingly, the most highly ranked hubs will have the most consistently high degree across network ensemble. 
+We first prioritize the CNA- and protein- hubs. If  the `bdeg` argument is specified, then we rank the hubs according to the average degree rank. Accordingly, the most highly ranked hubs will have the most consistently high degree across network ensemble. 
 
-To rank the mRNA nodes, use the `rankHub` command and simply specify the `level = "y"` argument. 
+To rank the protein nodes, use the `rankHub` command and simply specify the `level = "y"` argument. 
 
 ```{r}
 ig <- rankHub(ig = ig, bdeg = bdeg$yy, level = "y")
@@ -122,14 +108,30 @@ ig <- cisTrans(ig = ig, level = "x-y", cw = 2e6)
 We then report a well-organized table, as seen in Table 3 of the spaceMap publication. The `top` argument allows us to control how many hubs are displayed.
 
 ```{r}
-xhubs <- reportHubs(ig, top = 30, level = "x")
+xhubs <- reportHubs(ig, top = 40, level = "x")
 ```
+
+
+
+```{r, eval = FALSE}
+vidx <- V(ig)[match(rownames(xhubs), V(ig)$name)]
+m <- vertex_attr(graph = ig, name = "mean_rank_hub", index = vidx)
+s <- vertex_attr(graph = ig, name = "sd_rank_hub", index = vidx)
+st <- vertex_attr(graph = ig, name = "start", index = vidx)
+end <- vertex_attr(graph = ig, name = "end", index = vidx)
+rnk <- paste0(round(m, 2), " (", round(s,2), ")")
+xhubs$`cis genes`
+tosupp <- cbind(xhubs$hub, st, end, xhubs$`# cis/ # trans`, xhubs$`Potential # cis`, xhubs$`cis genes`, rnk)
+library(xtable)
+print(xtable(tosupp), include.rownames = FALSE)
+```
+
 
 ```{r, echo=FALSE}
-kable(xhubs, row.names = FALSE)
+knitr::kable(xhubs, row.names = FALSE)
 ```
 
-Similarly, we can report the top 10 mRNA hubs,  their degrees in the  final network, and a description of each hub, if the `description` column was specified in `yinfo`. 
+Similarly, we can report the top 10 protein hubs,  their degrees in the  final network, and a description of each hub, if the `description` column was specified in `yinfo`. 
 
 ```{r}
 yhubs <- reportHubs(ig, top = 10, level = "y")
@@ -141,14 +143,10 @@ kable(yhubs, row.names = FALSE)
 
 ### GO-neighbor percentage
 
-A _CNA neighborhood_ comprises all mRNA nodes that are directly connected to a CNA hub by an edge. CNA neighborhoods  represent direct perturbations to the proteome by amplifications or deletions in the DNA. To quantify their functional relevance, we compute a score called the _GO-neighbor percentage_. Two mRNA nodes are called GO-neighbors if they share a common GO term in the same CNA neighborhood. We postulate that a high percentage of GO-neighbors within a CNA neighborhood associates the CNA hub with more functional meaning. These scores, as presented in Figure 5 of the publication, can be generated with a GO mapping to the mRNAs as follows. 
+A _CNA neighborhood_ comprises all protein nodes that are directly connected to a CNA hub by an edge. CNA neighborhoods  represent direct perturbations to the proteome by amplifications or deletions in the DNA. To quantify their functional relevance, we compute a score called the _GO-neighbor percentage_. Two protein nodes are called GO-neighbors if they share a common GO term in the same CNA neighborhood. We postulate that a high percentage of GO-neighbors within a CNA neighborhood associates the CNA hub with more functional meaning. These scores can be generated with a GO mapping to the proteins as follows. 
 
 ```{r}
 hgp <- xHubEnrich(ig = ig, go2eg = go2eg)
-```
-
-```{r, echo=FALSE}
-kable(hgp, row.names = FALSE)
 ```
 
 ## Module Analysis
@@ -166,10 +164,10 @@ The main goal of module analysis is identifying modules that are functionally en
 The `modEnrich` function will test for significantly over-represented GO-terms (or any other valid functional grouping) within a module using hyper-geometric tests.  
 
 
-In  the current example, only the mRNA nodes have functional mapping and we specify this through the `levels = "y"` argument. If both predictors and responses have functional mapping in the `go2eg` argument, then we can specify `levels = c("y","x")`.  Other arguments are available to control the enrichment testing; see [modEnrich](https://topherconley.github.io/spacemap/reference/modEnrich.html) for more details. 
+In  the current example, only the protein nodes have functional mapping and we specify this through the `levels = "y"` argument. If both predictors and responses have functional mapping in the `go2eg` argument, then we can specify `levels = c("y","x")`.  Other arguments are available to control the enrichment testing; see [modEnrich](https://topherconley.github.io/spacemap/reference/modEnrich.html) for more details. 
 
 ```{r}
-outmod <- modEnrich(ig = ig, mods = mods, levels = "y", go2eg = go2eg, process_alias = process_alias, prefix = "R")
+outmod <- modEnrich(ig = ig, mods = mods, levels = "y", go2eg = go2eg, process_alias = process_alias, prefix = "C")
 ```
 
 The output of the module analysis is a list of 3 objects.
@@ -185,12 +183,12 @@ useful for visualizing which nodes are enriched for a specific biological functi
 
 
 ```{r, eval = FALSE}
-outmod$etab[1:10,]
+outmod$etab[1:20,]
 ```
 
 
 ```{r, echo=FALSE}
-knitr::kable(outmod$etab[1:10,], row.names = FALSE)
+knitr::kable(outmod$etab[1:20,], row.names = FALSE)
 ```
 
 + `eraw` contains details for each (module, GO-term) pair that was subjected to the hyper-geometric test. This output gives the user more control by reporting all tests, the relative over-representation of a GO-term in that module, the raw P-value, and the adjusted P-value. 
@@ -208,7 +206,7 @@ knitr::kable(outmod$eraw[1:5,], row.names = FALSE)
 There are many tools for network visualization. In the publication of spaceMap, we exported the annotated *igraph* network object `ig` to the "graphml" format, which maintained all the attributes associated with nodes when read into *Cytoscape* for visualization. 
 
 ```{r}
-filename <- "~/repos/neta-bcpls/neta/spacemap-rna-boot-vote.graphml"
+filename <- "~/repos/neta-bcpls/neta/spacemap-scggm-boot-vote.graphml"
 #delete nodes without edges from the graph object
 vis <- delete_vertices(graph = outmod$ig, v = V(outmod$ig)[igraph::degree(outmod$ig) == 0])
 igraph::write_graph(graph = vis, file = filename, format = "graphml")

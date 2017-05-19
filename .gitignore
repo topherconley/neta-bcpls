@@ -1,3 +1,5 @@
+.RData
+neta-bcpls.Rproj
 *.Rproj$
 .Rproj\.user
 .Rhistory
@@ -16,3 +18,9 @@ docs/clean-data/*.R
 docs/clean-data/*.nb.html
 docs/clean-data/*_cache
 docs/data/
+#neta-cytoscape
+neta/*.eps
+neta/*.svg
+neta/*.cys
+neta/*.R
+figures/

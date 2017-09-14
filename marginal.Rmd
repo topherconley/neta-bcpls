@@ -1,0 +1,94 @@
+---
+title: "Marginal Analysis"
+author: "Christopher Conley, Pei Wang, Jie Peng"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+```{r, echo = FALSE}
+library(knitr)
+opts_chunk$set(message=F, warning=F)
+```
+
+```{r}
+library(Biobase)
+protset <- readRDS(file = "data/prot-expression-set.rds")
+y <- t(exprs(protset))
+yinfo <- pData(featureData(readRDS(file = "data/prot-expression-set.rds")))
+cnaset <- readRDS(file = "data/cna-expression-set.rds")
+x <- t(exprs(cnaset))
+xinfo <- pData(featureData(readRDS(file = "data/cna-expression-set.rds")))
+```
+
+```{r}
+xycor <- cor(x = x, y = y, method = "spearman")
+```
+
+```{r}
+library(SuppDists)
+pvals <- matrix(data = NA, nrow = ncol(x), ncol = ncol(y))
+r <- nrow(x)
+for(p in seq_len(ncol(x))) { 
+  for(q in seq_len(ncol(y)))  {
+    tmp <- cor.test(x = x[,p], y = y[,q], method = "spearman", exact = F)
+    pvals[p,q] <- tmp$p.value 
+  }
+}
+colnames(pvals) <- colnames(y)
+rownames(pvals) <- colnames(x)
+saveRDS(object = pvals, file = "data/prot-cna-spearman-pvals.rds")
+```
+
+```{r}
+#p.adjust.methods
+adjPvals <- p.adjust(p  = as.numeric(pvals), method = "BH")
+adjPvals <- matrix(data = adjPvals, nrow = ncol(x), ncol = ncol(y))
+thresh <- 0.01
+sigCor <- adjPvals <= thresh
+sigCorByCNA <- rowSums(sigCor)
+```
+
+```{r}
+library(Matrix)
+net <- readRDS(file = "model-fits/smap_prot_boot_vote.rds")
+names(net) <- c("yy", "xy")
+rownames(net$xy) <- xinfo$id; colnames(net$xy) <- yinfo$id;
+rownames(net$yy) <- yinfo$id; colnames(net$yy) <- yinfo$id;
+marg <- list(yy = net$yy, xy = sigCor + 0)
+rownames(marg$xy) <- xinfo$id; colnames(marg$xy) <- yinfo$id;
+library(spacemap)
+imarg <- adj2igraph(yy = marg$yy, xy = marg$xy, yinfo = yinfo, xinfo = xinfo)
+ig <- adj2igraph(yy = net$yy, xy = net$xy, yinfo = yinfo, xinfo = xinfo)
+```
+
+
+```{r}
+imarg
+imargxy <- igraph::subgraph.edges(imarg, eids = E(imarg)[levels %in% "x-y"])
+igxy <- igraph::subgraph.edges(ig, eids = E(ig)[levels %in% "x-y"])
+iixy <- igraph::intersection(igxy, imargxy)
+as_ids(E(iixy))
+as_data_frame(x = iixy, what = "vertices")
+```
+
+```{r}
+iixy
+imarg <- rankHub(ig = imarg, level = "x")
+
+```
+
+
+
+```{r}
+sum(sigCor)
+colnames(x)[rowSums(sigCor) > 10]
+colnames(y)[colSums(sigCor) > 0]
+```
+
+```{r}
+identical(featureNames(protset), colnames(y))
+```
+

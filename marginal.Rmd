@@ -1,6 +1,6 @@
 ---
-title: "Marginal Analysis"
-author: "Christopher Conley, Pei Wang, Jie Peng"
+title: "BCPLS Marginal Analysis"
+author: "Christopher Conley, Pei Wang, Umut Ozbek, Jie Peng"
 date: "`r Sys.Date()`"
 output:
   html_document:
@@ -8,87 +8,349 @@ output:
     toc_float: true
 ---
 
-```{r, echo = FALSE}
+```{r, echo = FALSE, warning= F}
 library(knitr)
 opts_chunk$set(message=F, warning=F)
 ```
 
+
+## Motivation 
+
+Marginal correlation analysis of proteogenomic breast cancer data is a computationally efficient method that carries the advantage of being applied genome-wide, while the graphical model spaceMap is not yet able to model genome-wide features. However, marginal analysis lacks the same modeling precision of graphical models and is prone to overfitting. The differences in feature resolution and number of features typically input to these two strategies make them difficult to compare. The following presentation compares the marginal analysis approach with spaceMap on a highly-variable subset of proteins and large copy number aberations intervals (CNA) of several megabases---expliclity using the same feature input. This comparison avoids comparing a marginal analysis with gene-level CNA input (as was done in the original BCPLS publication) with a spaceMap analysis with large genomic CNA. The outcome of this analysis clearly highlights the advantages spaceMap has over a marginal analysis when the feature input is the same. 
+
+## Data import
+
+Import the protein and the CNA data that was used to fit spaceMap to the breast cancer data associated with the BCPLS study. 
+
 ```{r}
+library(spacemap)
+data("bcpls")
+attach(bcpls)
+#useful for reporting enriched hubs/modules later. 
+library(AnnotationDbi)
+library(GO.db)
+process_alias <- AnnotationDbi::Term(names(go2eg))
+#read protein abundance and CNA data 
 library(Biobase)
 protset <- readRDS(file = "data/prot-expression-set.rds")
 y <- t(exprs(protset))
-yinfo <- pData(featureData(readRDS(file = "data/prot-expression-set.rds")))
+colnames(y) <- yinfo$id
 cnaset <- readRDS(file = "data/cna-expression-set.rds")
 x <- t(exprs(cnaset))
-xinfo <- pData(featureData(readRDS(file = "data/cna-expression-set.rds")))
+colnames(x) <- xinfo$id
 ```
 
-```{r}
-xycor <- cor(x = x, y = y, method = "spearman")
-```
+## Pearson Correlation Analysis 
+
+We will compute the P-values from the Pearson correlation statistic for each CNA--protein and protein-protein pair with these function. 
 
 ```{r}
-library(SuppDists)
-pvals <- matrix(data = NA, nrow = ncol(x), ncol = ncol(y))
-r <- nrow(x)
-for(p in seq_len(ncol(x))) { 
-  for(q in seq_len(ncol(y)))  {
-    tmp <- cor.test(x = x[,p], y = y[,q], method = "spearman", exact = F)
-    pvals[p,q] <- tmp$p.value 
-  }
+xyPvalues <- function(x, y, method = c("pearson", "spearman"), rdsfile) { 
+  method = match.arg(arg = method, choices = c("pearson", "spearman"))
+  require(foreach)
+  pvals <- foreach(p = seq_len(ncol(x)), .combine = 'rbind') %:% 
+    foreach(q = seq_len(ncol(y)), .combine = 'c') %dopar% { 
+      cor.test(x = x[,p], y = y[,q], method = method)$p.value
+    }
+  colnames(pvals) <- colnames(y)
+  rownames(pvals) <- colnames(x)
+  saveRDS(object = pvals, file = rdsfile)
+  pvals
 }
-colnames(pvals) <- colnames(y)
-rownames(pvals) <- colnames(x)
-saveRDS(object = pvals, file = "data/prot-cna-spearman-pvals.rds")
+
+yyPvalues <- function(y, method = c("pearson", "spearman"), rdsfile) { 
+  method = match.arg(arg = method, choices = c("pearson", "spearman"))
+  require(foreach)
+
+  #generate lower triangle indices to iterate over
+  rows <- nrow(y)  
+  z <- sequence(rows)
+  indices <- cbind(  row = unlist(lapply(2:rows, function(x) x:rows), use.names = FALSE),
+                     col = rep(z[-length(z)], times = rev(tail(z, -1))-1))
+  
+  pvals <- foreach(j = seq_len(nrow(indices)), .combine = 'c') %dopar% {
+    cor.test(x = y[,indices[j,"row"]], y = y[,indices[j,"col"]], method = method)$p.value
+  }
+  edge_list <- data.frame(from = colnames(y)[indices[,"row"]], to = colnames(y)[indices[,"col"]], pvalue = pvals)
+  saveRDS(object = edge_list, file = rdsfile)
+  edge_list
+}
 ```
 
-```{r}
-#p.adjust.methods
-adjPvals <- p.adjust(p  = as.numeric(pvals), method = "BH")
-adjPvals <- matrix(data = adjPvals, nrow = ncol(x), ncol = ncol(y))
-thresh <- 0.01
-sigCor <- adjPvals <= thresh
-sigCorByCNA <- rowSums(sigCor)
+Compute the P-values for each protein-CNA pair and save them to file because this takes 20-30 minutes with 7 cores (pre-computed).  
+
+```{r, eval = F}
+pxyfile <- "~/scratch-data/neta-bcpls/marginal/xy_pearson_protein_bcpls.rds"
+stopifnot(!dir.exists(basename(pxyfile)))
+library(doParallel)
+cl <- makeCluster(detectCores() - 1)
+registerDoParallel(cl)
+pxypval <- xyPvalues(x = x, y = y, method = "pearson", rdsfile = pxyfile)
 ```
 
+Compute the P-values for each protein--protein pair.  
+
+```{r, eval = F}
+pyyfile <- "~/scratch-data/neta-bcpls/marginal/yy_pearson_protein_bcpls.rds"
+stopifnot(!dir.exists(basename(pyyfile)))
+pyypval <- yyPvalues(y = y, method = "pearson", rdsfile = pyyfile)
+```
+
+Read in the pre-computed P-values from file. 
+
 ```{r}
+pxypval <- readRDS("~/scratch-data/neta-bcpls/marginal/xy_pearson_protein_bcpls.rds")
+pyypval <- readRDS("~/scratch-data/neta-bcpls/marginal/yy_pearson_protein_bcpls.rds")
+```
+
+
+```{r, eval = F, echo = F}
+#mrna do not investigate for now. 
+rnaset <- readRDS(file = "data/rna-expression-set.rds")
+z <- t(exprs(rnaset))
+zinfo <- pData(featureData(rnaset))
+colnames(z) <- zinfo$id
+rxzfile <- "~/scratch-data/neta-bcpls/marginal/xy_pearson_mrna_bcpls.rds"
+stopifnot(!dir.exists(basename(rxzfile)))
+rxzpval <- xyPvalues(x = x, y = z, method = "pearson", rdsfile = rxzfile)
+```
+
+```{r, eval = F, echo = F}
+rxzpval <- readRDS("~/scratch-data/neta-bcpls/marginal/xy_pearson_mrna_bcpls.rds")
+```
+
+
+```{r, eval  = F, echo= F}
+#Apply the Benjamini-Hochberg correction to every CNA--protein interaction using this function. 
+xyAdjPvalues <- function(pvalues, method = "BH", byX = F) { 
+  #p.adjust.methods
+  if (!byX) { 
+    adjPvals <- p.adjust(p  = as.numeric(pvalues), method = "BH")
+    adjPvals <- matrix(data = adjPvals, nrow = ncol(x), ncol = ncol(y))
+  } else { 
+    adjPvals <- apply(pvals, 1, p.adjust, method = "BH")
+    adjPvals <- matrix(data = adjPvals, nrow = ncol(x), ncol = ncol(y))
+  }
+  colnames(adjPvals) <- colnames(pvalues)
+  rownames(adjPvals) <- rownames(pvalues)
+  adjPvals
+}
+```
+
+
+```{r, eval = F, echo = F}
+#if adjusting just the x-y
+adjpxypval <- xyAdjPvalues(pxypval)
+thresh <- 0.05
+sigCor <- adjpxypval <= thresh
+```
+
+Form the adjacency matrices of the marginal (Pearson correlation) network. Apply the Benjamini-Hochberg correction to every (CNA--protein, protein--protein) interaction  and then keep only those interactions that pass an FDR < 0.1. This method produces  what we refer to hereafter as the "marginal network" from the significant protein-CNA interactions based on Pearson correlations (FDR < 0.1). Note that an FDR threshold of 0.05 and 0.01 produce the same number of significant edges. An FDR of 0.1 is a reasonable threshold for exploratory network analyses such as this.  
+
+```{r}
+adjMatCor <- function(xp, dyp, x, y, thresh = 0.1) { 
+  
+  #partition and index x--y vs y--y
+  xp <- as.numeric(xp)
+  yp <- as.matrix(dyp$pvalue)
+  thresh <- 0.01
+  nxp <- length(xp)
+  nyp <- length(yp)
+  xi <- 1:nxp
+  yi <- (nxp + 1):(nxp +  nyp)
+  
+  #global adjustment
+  gp <- p.adjust(p = c(xp, yp), method = "BH")
+  gyp <- gp[yi]
+  gxp <- gp[xi]
+  #make x--y adjacency matrix
+  mgxp <- matrix(data = gxp, nrow = ncol(x), ncol = ncol(y))
+  adjxy <- (mgxp <= thresh) + 0
+  rownames(adjxy) <- colnames(x)
+  colnames(adjxy) <- colnames(y)
+  
+  #make y--y adjacency matrix
+  dyp$fdr <- gyp
+  make_yy_adj_matrix <- function(el) { 
+    ay <- matrix(data = 0L, nrow = ncol(y), ncol = ncol(y))
+    rownames(ay) <- colnames(y)
+    colnames(ay) <- colnames(y)
+    for(j in seq_len(nrow(el))) { 
+      if (el[j,"fdr"] <= thresh) { 
+        ay[el[j,"from"], el[j,"to"]] <- 1L
+        ay[el[j,"to"], el[j,"from"]] <- 1L
+      }
+    }
+    ay
+  }
+  adjyy <- make_yy_adj_matrix(el = dyp) 
+  
+  #return list of adjacency matrices
+  list(yy = adjyy, xy = adjxy)
+}
+marg <- adjMatCor(xp = pxypval, dyp = pyypval, x = x, y = y, thresh = 0.1)
+#check to make feature labels are correct.
+stopifnot(all(colnames(x) == xinfo$id), all(colnames(y) == yinfo$id))
+```
+
+## Compare marginal vs spaceMap networks
+
+Now we will compare the marginal network based on the Pearson correlation and spaceMap-based CNA--protein networks for breast cancer. 
+
+<!--Since we will compare only the protein-CNA edges, we use the protein--protein edges from spaceMap's Boot.Vote network as a place holder for parameters required to convert the marginal network into igraph format with the function  `spaceMap::adj2igraph`. --> 
+
+```{r, echo = F, eval = F}
+#old way of importing 
 library(Matrix)
-net <- readRDS(file = "model-fits/smap_prot_boot_vote.rds")
-names(net) <- c("yy", "xy")
-rownames(net$xy) <- xinfo$id; colnames(net$xy) <- yinfo$id;
-rownames(net$yy) <- yinfo$id; colnames(net$yy) <- yinfo$id;
-marg <- list(yy = net$yy, xy = sigCor + 0)
+pnet <- readRDS(file = "model-fits/smap_prot_boot_vote.rds")
+names(pnet) <- c("yy", "xy")
+rownames(pnet$xy) <- xinfo$id; colnames(pnet$xy) <- yinfo$id;
+rownames(pnet$yy) <- yinfo$id; colnames(pnet$yy) <- yinfo$id;
+ig <- adj2igraph(yy = pnet$yy, xy = pnet$xy, yinfo = yinfo, xinfo = xinfo)
+marg <- list(yy = pnet$yy, xy = sigCor + 0)
 rownames(marg$xy) <- xinfo$id; colnames(marg$xy) <- yinfo$id;
-library(spacemap)
-imarg <- adj2igraph(yy = marg$yy, xy = marg$xy, yinfo = yinfo, xinfo = xinfo)
-ig <- adj2igraph(yy = net$yy, xy = net$xy, yinfo = yinfo, xinfo = xinfo)
 ```
 
+```{r}
+#Form the marginal network. 
+imarg <- adj2igraph(yy = marg$yy, xy = marg$xy, yinfo = yinfo, xinfo = xinfo)
+#Import spaceMap's Boot.Vote network. 
+pgraphml <- "~/repos/neta-bcpls/neta/spacemap-prot-boot-vote.graphml"
+stopifnot(file.exists(pgraphml))
+library(igraph)
+ig <- read_graph(file = pgraphml, format = "graphml")
+```
+
+Subset the marginal network and spaceMap Boot.Vote network into their $y-y$ and $x-y$ subnetworks to aid the comparisons. Intersect the two networks to see what is in common. 
 
 ```{r}
-imarg
 imargxy <- igraph::subgraph.edges(imarg, eids = E(imarg)[levels %in% "x-y"])
 igxy <- igraph::subgraph.edges(ig, eids = E(ig)[levels %in% "x-y"])
+imargyy <- igraph::subgraph.edges(imarg, eids = E(imarg)[levels %in% "y-y"])
+igyy <- igraph::subgraph.edges(ig, eids = E(ig)[levels %in% "y-y"])
+# what is common
 iixy <- igraph::intersection(igxy, imargxy)
-as_ids(E(iixy))
-as_data_frame(x = iixy, what = "vertices")
+iiyy <- igraph::intersection(igyy, imargyy)
 ```
 
+There are `r length(E(imargxy))` CNA--protein edges in the marginal network compared to  `r length(E(igxy))` in spaceMap's network. The two networks have `r length(E(iixy))` CNA--protein  edges in common. There are `r length(E(imargyy))` protein--protein edges in the marginal network compared to  `r length(E(igyy))` in spaceMap's network. The two networks have `r length(E(iiyy))` proteins--protein  edges in common. There are many CNA hubs with only one degree in the marginal network. 
+
+```{r, message = F}
+library(ggplot2)
+qplot(degree(imargxy)[V(imargxy)[levels %in% "x"]]) + theme_bw() + xlab("CNA hub degree distribution") + ggtitle("Marginal CNA--protein Network")
+```
+
+```{r, echo = F}
+#common edges
+eigxy <- as_ids(E(igxy))
+eimargxy <- as_ids(E(imargxy))
+eiixy <- as_ids(E(iixy))
+uqx <- sapply(strsplit(x = eiixy, split = "|", fixed = T), function(x) x[1])
+uqxs <- xinfo$alias[match(uqx, xinfo$id)]
+uqy <- sapply(strsplit(x = eiixy, split = "|", fixed = T), function(x) x[2])
+uqys <- yinfo$alias[match(uqy, yinfo$id)]
+common_edges <- data.frame(x = uqxs, y = uqys)
+colnames(common_edges) <- c("CNA hub", "Protein")
+#knitr::kable(common_edges)
+```
+
+The common CNA hubs between marginal and spaceMap networks are consistent with the original BCPLS publication, which reported "5q (loss of heterozygosity (LOH) in basal; gain in luminal B), 10p (gain in basal), 12 (gain in basal), 16q (luminal A deletion), 17q (luminal B amplification), and 22q (LOH in luminal and basal)".  Notably, only  22q is absent from the spaceMap analysis and only 3 small-degree CNA hubs (mean degree of 1.19) from 22q are represented by the marginal analysis. The evidence leaves open the possiblity that the the variance filter applied to the original data may have omitted proteins that are perturbed by 22q. 
+
 ```{r}
-iixy
+marg_xhubs <- as_ids(V(imargxy)[igraph::degree(imargxy) > 0 & V(imargxy)$levels %in% "x"])
+ig_xhubs <- as_ids(V(igxy)[igraph::degree(igxy) > 0 & V(igxy)$levels %in% "x"])
+ xinfo$alias[match(intersect(ig_xhubs, marg_xhubs), xinfo$id)]
+```
+
+The CNA hubs unique to spaceMap (listed below) are associated with module P1, but are not associated with any specific GO-enriched proteins. Those CNA hubs are: 
+
+```{r}
+#as_data_frame(x = ig, what = "vertices")[setdiff(ig_xhubs, marg_xhubs),]
+ucna_smap <- xinfo$alias[match(setdiff(ig_xhubs, marg_xhubs), xinfo$id)]
+ucna_smap
+```
+
+The CNA hubs unique to the marginal network have generally much smaller degree than the spaceMap network and are represented across 19 chromosomes. In the following table, we list chromosome with the frequency of reported CNA hubs _unique_ to the marginal analysis. The mean degree of the CNA hubs in the marginal network is `r mean(degree(imargxy)[V(imargxy)[levels %in% "x"]])`, while for spaceMap it is `r mean(degree(igxy)[V(igxy)[levels %in% "x"]])`. The marginal network clearly reports more CNA perturbing the genome, but the effect is more diminished. 
+
+```{r}
+ucna_marg <- xinfo$alias[match(setdiff(marg_xhubs, ig_xhubs), xinfo$id)]
+ucna_marg_df <- data.frame(cytoband = ucna_marg, id = setdiff(marg_xhubs, ig_xhubs))
+ucna_marg_tab <- table(sapply(strsplit(ucna_marg, split = "p|q"), function(x) x[1]))
+ucna_marg_tab2 <- as.data.frame(ucna_marg_tab)
+ucna_marg_tab2 <- ucna_marg_tab2[with(ucna_marg_tab2, order(Freq, decreasing = T)),]
+colnames(ucna_marg_tab2) <- c("Chromosome", "# of CNA hubs Unique to Marginal Analysis")
+mean_chr_degree <- function(chr) { mean(degree(imargxy)[as.character(ucna_marg_df$id[grep(chr, ucna_marg_df$cytoband)])]) }
+ucna_marg_tab2$`Mean Degree` <- round(sapply(ucna_marg_tab2$Chromosome, mean_chr_degree),2)
+knitr::kable(ucna_marg_tab2, row.names = F)
+```
+
+## Marginal Hub Analysis
+
+Rank the protein and CNA nodes, resptively. 
+
+```{r}
+imarg <- rankHub(ig = imarg, level = "y")
 imarg <- rankHub(ig = imarg, level = "x")
-
 ```
 
-
+Next label $x-y$ edges as being regulated in cis or in trans. 
 
 ```{r}
-sum(sigCor)
-colnames(x)[rowSums(sigCor) > 10]
-colnames(y)[colSums(sigCor) > 0]
+library(GenomicRanges)
+imarg <- cisTrans(ig = imarg, level = "x-y")
 ```
 
+We report the top 50 (degree-ranked) CNA hubs for the marginal network. The marginal analysis identifies much less than cis edges than one would expect, which is similar to the spaceMap network. Further the marginal network reports a large number of redundant CNA hubs compared to the spaceMap network, where redundant is defined to be CNA hubs of very close genomic distance  and share very similar edges. For example there are at least 5 redundant 17q12 hubs, 2 redundant edges for 17q25, and 3 redundant edges for 6q21. 
+
 ```{r}
-identical(featureNames(protset), colnames(y))
+xhubs <- reportHubs(imarg, top = 50, level = "x")
 ```
+
+```{r, echo=FALSE}
+kable(xhubs, row.names = FALSE)
+```
+
+The marginal network identified the 5q arm as having  high degree and having also perturbed proteins with common functional roles according to the GO-neighbor percentage. This result conforms well to the spaceMap and original BCPLS analysis, which highlight the 5q arm loss in the basal molecular subtype. 
+
+```{r}
+hgp <- xHubEnrich(ig = imarg, go2eg = go2eg)
+hgp2 <- hgp[hgp$degree > 10,]
+kable(hgp2[order(hgp2$neighbor_percentage, decreasing = T),], row.names = FALSE)
+```
+
+## Marginal Module Analysis
+
+Use the edge-betweenness algorithm to cluster. 
+
+```{r}
+library(igraph)
+mods <- cluster_edge_betweenness(imarg)
+mod_tab <- table(mods$membership)
+```
+
+There are `r sum(mod_tab >= 15)` modules of size 15 or greater. 
+
+The marginal network GO-enrichment is very limited by any standard---finding only 2 GO-terms enriched---especially so when compared to spaceMap, which found over 40 GO-enriched terms. Both methods identify a common GO-enrichment of proteins involved in transcriptional regulation that are in trans-association with 5q. 
+
+```{r}
+outmod <- modEnrich(ig = imarg, mods = mods, levels = "y", 
+                    go2eg = go2eg, 
+                    prefix = "MARG", process_alias = process_alias)
+knitr::kable(outmod$etab, row.names = FALSE)
+```
+
+Export for visualization.
+
+```{r}
+filename <- "~/repos/neta-bcpls/neta/marginal-prot-boot-vote.graphml"
+#only keep vertices that have edges for visualization
+vis <- delete_vertices(graph = outmod$ig, v = V(outmod$ig)[igraph::degree(outmod$ig) == 0])
+igraph::write_graph(graph = vis, file = filename, format = "graphml")
+```
+
+
+## Summary
+
+In comparing the marginal network to spaceMap's Boot.Vote network, we see the advantages of spaceMap. The commonality of CNA hubs between the two analyses inspires confidence in the novel spaceMap method. Further, spaceMap reports less redundant and more prominent CNA hubs through the use of the group penalty term; this has the effect of potentially narrowing down the region of potential cancer drivers better than a marginal analysis and take this as evidence of spaceMap's more direct modeling approach. In the $y-y$ edge space, there is much more GO-enrichment of the spaceMap method, showing it is more useful for extracting biological insight from high-dimensional proteogenomic data than marginal network analysis. 
+
 

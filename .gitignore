@@ -24,3 +24,4 @@ neta/*.svg
 neta/*.cys
 neta/*.R
 figures/
+.Rproj.user

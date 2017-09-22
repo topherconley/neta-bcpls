@@ -451,10 +451,10 @@ stopifnot(all(colnames(x) == xinfo$id), all(colnames(y) == yinfo$id))</code></pr
 <h2>Compare marginal vs spaceMap networks</h2>
 <p>Now we will compare the marginal network based on the Pearson correlation and spaceMap-based CNA–protein networks for breast cancer.</p>
 <!--Since we will compare only the protein-CNA edges, we use the protein--protein edges from spaceMap's Boot.Vote network as a place holder for parameters required to convert the marginal network into igraph format with the function  `spaceMap::adj2igraph`. -->
-<pre class="r"><code>#Form the marginal network. 
-imarg &lt;- adj2igraph(yy = marg$yy, xy = marg$xy, yinfo = yinfo, xinfo = xinfo)
-#Import spaceMap&#39;s Boot.Vote network. 
-pgraphml &lt;- &quot;/Users/bioinformatics/repos/neta-bcpls/neta/spacemap-prot-boot-vote.graphml&quot;
+<p>Form the marginal network.</p>
+<pre class="r"><code>imarg &lt;- adj2igraph(yy = marg$yy, xy = marg$xy, yinfo = yinfo, xinfo = xinfo)</code></pre>
+<p>Import spaceMap’s Boot.Vote network.</p>
+<pre class="r"><code>pgraphml &lt;- &quot;/Users/bioinformatics/repos/neta-bcpls/neta/spacemap-prot-boot-vote.graphml&quot;
 stopifnot(file.exists(pgraphml))
 library(igraph)
 ig &lt;- read_graph(file = pgraphml, format = &quot;graphml&quot;)</code></pre>
@@ -469,7 +469,7 @@ iiyy &lt;- igraph::intersection(igyy, imargyy)</code></pre>
 <p>There are 669 CNA–protein edges in the marginal network compared to 585 in spaceMap’s network. The two networks have 59 CNA–protein edges in common. There are 416 protein–protein edges in the marginal network compared to 954 in spaceMap’s network. The two networks have 8 proteins–protein edges in common. There are many CNA hubs with only one degree in the marginal network.</p>
 <pre class="r"><code>library(ggplot2)
 qplot(degree(imargxy)[V(imargxy)[levels %in% &quot;x&quot;]]) + theme_bw() + xlab(&quot;CNA hub degree distribution&quot;) + ggtitle(&quot;Marginal CNA--protein Network&quot;)</code></pre>
-<p><img src="marginal_files/figure-html/unnamed-chunk-15-1.png" width="672" /></p>
+<p><img src="marginal_files/figure-html/unnamed-chunk-16-1.png" width="672" /></p>
 <p>The common CNA hubs between marginal and spaceMap networks are consistent with the original BCPLS publication, which reported “5q (loss of heterozygosity (LOH) in basal; gain in luminal B), 10p (gain in basal), 12 (gain in basal), 16q (luminal A deletion), 17q (luminal B amplification), and 22q (LOH in luminal and basal)”. Notably, only 22q is absent from the spaceMap analysis and only 3 small-degree CNA hubs (mean degree of 1.19) from 22q are represented by the marginal analysis. The evidence leaves open the possiblity that the the variance filter applied to the original data may have omitted proteins that are perturbed by 22q.</p>
 <pre class="r"><code>marg_xhubs &lt;- as_ids(V(imargxy)[igraph::degree(imargxy) &gt; 0 &amp; V(imargxy)$levels %in% &quot;x&quot;])
 ig_xhubs &lt;- as_ids(V(igxy)[igraph::degree(igxy) &gt; 0 &amp; V(igxy)$levels %in% &quot;x&quot;])
@@ -935,74 +935,74 @@ kable(hgp2[order(hgp2$neighbor_percentage, decreasing = T),], row.names = FALSE)
 </thead>
 <tbody>
 <tr class="odd">
-<td align="left">5q35.2</td>
-<td align="right">14</td>
-<td align="right">92.85714</td>
+<td align="left">5q23.2-23.3</td>
+<td align="right">11</td>
+<td align="right">0</td>
 </tr>
 <tr class="even">
 <td align="left">5q33.1-33.3</td>
 <td align="right">17</td>
-<td align="right">88.23529</td>
-</tr>
-<tr class="odd">
-<td align="left">5q35.3</td>
-<td align="right">17</td>
-<td align="right">88.23529</td>
-</tr>
-<tr class="even">
-<td align="left">5q35.2-35.3</td>
-<td align="right">16</td>
-<td align="right">87.50000</td>
+<td align="right">0</td>
 </tr>
 <tr class="odd">
 <td align="left">5q33.3-34</td>
 <td align="right">23</td>
-<td align="right">86.95652</td>
-</tr>
-<tr class="even">
-<td align="left">5q34</td>
-<td align="right">15</td>
-<td align="right">86.66667</td>
-</tr>
-<tr class="odd">
-<td align="left">5q35.3</td>
-<td align="right">22</td>
-<td align="right">86.36364</td>
+<td align="right">0</td>
 </tr>
 <tr class="even">
 <td align="left">5q34</td>
 <td align="right">21</td>
-<td align="right">85.71429</td>
+<td align="right">0</td>
 </tr>
 <tr class="odd">
 <td align="left">5q34</td>
 <td align="right">18</td>
-<td align="right">77.77778</td>
+<td align="right">0</td>
 </tr>
 <tr class="even">
-<td align="left">5q14.3</td>
-<td align="right">18</td>
-<td align="right">77.77778</td>
+<td align="left">5q34</td>
+<td align="right">15</td>
+<td align="right">0</td>
 </tr>
 <tr class="odd">
 <td align="left">5q34-35.1</td>
 <td align="right">17</td>
-<td align="right">76.47059</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">5q35.2</td>
+<td align="right">14</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">5q35.2-35.3</td>
+<td align="right">16</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">5q35.3</td>
+<td align="right">17</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">5q35.3</td>
+<td align="right">22</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">5q11.2-14.3</td>
+<td align="right">13</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">5q14.3</td>
+<td align="right">18</td>
+<td align="right">0</td>
 </tr>
 <tr class="even">
 <td align="left">5q14.3</td>
 <td align="right">14</td>
-<td align="right">71.42857</td>
-</tr>
-<tr class="odd">
-<td align="left">5q11.2-14.3</td>
-<td align="right">13</td>
-<td align="right">69.23077</td>
-</tr>
-<tr class="even">
-<td align="left">5q23.2-23.3</td>
-<td align="right">11</td>
-<td align="right">54.54545</td>
+<td align="right">0</td>
 </tr>
 </tbody>
 </table>
@@ -1019,36 +1019,6 @@ mod_tab &lt;- table(mods$membership)</code></pre>
                     go2eg = go2eg, 
                     prefix = &quot;MARG&quot;, process_alias = process_alias)
 knitr::kable(outmod$etab, row.names = FALSE)</code></pre>
-<table>
-<thead>
-<tr class="header">
-<th align="left">Module (size)</th>
-<th align="left">GO Category</th>
-<th align="left">GO Obs./ Total</th>
-<th align="left">X-hubs (hits)</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td align="left">MARG1 (84)</td>
-<td align="left">transcription from RNA polymerase II promoter</td>
-<td align="left">6/20</td>
-<td align="left">5q33.3-34 (23); 5q35.3 (22)</td>
-</tr>
-<tr class="even">
-<td align="left"></td>
-<td align="left">positive regulation of transcription from RNA polymerase II promoter</td>
-<td align="left">8/52</td>
-<td align="left"></td>
-</tr>
-<tr class="odd">
-<td align="left">MARG6 (48)</td>
-<td align="left">axon guidance</td>
-<td align="left">10/58</td>
-<td align="left"></td>
-</tr>
-</tbody>
-</table>
 <p>Export for visualization.</p>
 <pre class="r"><code>filename &lt;- &quot;~/repos/neta-bcpls/neta/marginal-prot-boot-vote.graphml&quot;
 #only keep vertices that have edges for visualization

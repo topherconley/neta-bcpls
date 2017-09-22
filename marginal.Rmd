@@ -201,20 +201,25 @@ Now we will compare the marginal network based on the Pearson correlation and sp
 
 ```{r, echo = F, eval = F}
 #old way of importing 
-library(Matrix)
+suppressPackageStartupMessages(library(Matrix))
 pnet <- readRDS(file = "model-fits/smap_prot_boot_vote.rds")
 names(pnet) <- c("yy", "xy")
 rownames(pnet$xy) <- xinfo$id; colnames(pnet$xy) <- yinfo$id;
 rownames(pnet$yy) <- yinfo$id; colnames(pnet$yy) <- yinfo$id;
 ig <- adj2igraph(yy = pnet$yy, xy = pnet$xy, yinfo = yinfo, xinfo = xinfo)
-marg <- list(yy = pnet$yy, xy = sigCor + 0)
-rownames(marg$xy) <- xinfo$id; colnames(marg$xy) <- yinfo$id;
+#marg <- list(yy = pnet$yy, xy = sigCor + 0)
+#rownames(marg$xy) <- xinfo$id; colnames(marg$xy) <- yinfo$id;
 ```
 
+Form the marginal network. 
+
 ```{r}
-#Form the marginal network. 
 imarg <- adj2igraph(yy = marg$yy, xy = marg$xy, yinfo = yinfo, xinfo = xinfo)
-#Import spaceMap's Boot.Vote network. 
+```
+
+Import spaceMap's Boot.Vote network. 
+
+```{r, eval = T}
 pgraphml <- "/Users/bioinformatics/repos/neta-bcpls/neta/spacemap-prot-boot-vote.graphml"
 stopifnot(file.exists(pgraphml))
 library(igraph)

@@ -176,7 +176,7 @@ $(document).ready(function () {
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
         <li>
-  <a href="index.html">About</a>
+  <a href="index.html">Application</a>
 </li>
 <li class="dropdown">
   <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
@@ -196,6 +196,9 @@ $(document).ready(function () {
     </li>
     <li>
       <a href="neta.html">4. Network Analysis</a>
+    </li>
+    <li>
+      <a href="marginal.html">5. Marginal Analysis</a>
     </li>
   </ul>
 </li>
@@ -227,13 +230,14 @@ $(document).ready(function () {
 
 <div id="network-analysis-for-breast-cancer-proteogenomics-landscape-study" class="section level1">
 <h1>Network Analysis for Breast Cancer Proteogenomics Landscape Study</h1>
-<p>This repository contains the <code>R</code> notebooks illustrating the <code>spaceMap</code> model’s network analysis toolkit in regards to the CPTAC Breast Cancer Proteogenomics Landscape Study. For the scientific context and documentation of the <code>R</code> noteboks please go to the <a href="https://topherconley.github.io/neta-bcpls/">neta-bcpls home page</a>.</p>
-<div id="analysis-outline" class="section level2">
-<h2>Analysis Outline</h2>
+<p>This repository illustrates <a href="https://topherconley.github.io/spacemap/index.html">spacemap’s</a> network analysis toolkit applied to data from the Breast Cancer Proteogenomics Landscape Study (Mertins <em>et al.</em>, 2016, Nature). The repository hosts the detailed <code>R</code> notebooks that formed the basis of conclusions of section 4 of the spaceMap publication. For the scientific context and documentation of the <code>R</code> notebooks please go to the <a href="https://topherconley.github.io/neta-bcpls/">neta-bcpls home page</a>.</p>
+<div id="r-notebooks" class="section level2">
+<h2>R Notebooks</h2>
 <ul>
-<li><strong>Data cleaning:</strong> The folder <code>clean-data</code> contains the pre-processing steps taken prior to model fitting. The output of this analysis is stored in the <code>data</code> folder. For access to the original data sets not stored in the repository, please reach out to the authors.</li>
-<li><strong>Networks:</strong> The Boot.Vote networks for spaceMap and sCGGM are located in the <code>model-fits</code> directory in serialized form. See R’s <code>readRDS</code> function for import.</li>
-<li><strong>Analysis:</strong> The folder <code>neta</code> contains R notebooks for GO ontology handling, network analyses for spaceMap under protein and RNA responses coupled with the CNA predictors, as well as a network analysis with sCGGM. The outcome these notebooks is currently under review.</li>
+<li><strong>data.Rmd:</strong> Bioinformatic pre-processing and dimension reduction of the original BCPLS data. The output of this analysis is stored in the <code>data/</code> folder. For access to the original data sets not stored in the repository, <a href="https://topherconley.github.io/spacemap/contact.html">please reach out to the authors of spaceMap</a>.</li>
+<li><strong>mfits.Rmd:</strong> An outline of how spaceMap was fit to the BCPLS data. The Boot.Vote networks for spaceMap and scggm are located in the <code>model-fits/</code> directory in serialized form. See R’s <code>readRDS</code> function for import.</li>
+<li><strong>annot.Rmd:</strong> An illustration of how to form an GO-gene mapping for input to the network analysis toolkit. The GO-gene mapping is stored in <code>data/</code>.</li>
+<li><strong>neta.Rmd:</strong> Application of the network analysis toolkit from the <a href="https://topherconley.github.io/spacemap/index.html">spacemap</a> R package to the BCPLS data set.</li>
 </ul>
 </div>
 </div>

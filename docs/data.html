@@ -11,7 +11,7 @@
 
 <meta name="author" content="Christopher Conley, Pei Wang, Jie Peng" />
 
-<meta name="date" content="2017-05-12" />
+<meta name="date" content="2017-09-21" />
 
 <title>Proteogenomic data processing</title>
 
@@ -277,7 +277,7 @@ div.tocify {
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
         <li>
-  <a href="index.html">About</a>
+  <a href="index.html">Application</a>
 </li>
 <li class="dropdown">
   <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
@@ -297,6 +297,9 @@ div.tocify {
     </li>
     <li>
       <a href="neta.html">4. Network Analysis</a>
+    </li>
+    <li>
+      <a href="marginal.html">5. Marginal Analysis</a>
     </li>
   </ul>
 </li>
@@ -324,7 +327,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">Proteogenomic data processing</h1>
 <h4 class="author"><em>Christopher Conley, Pei Wang, Jie Peng</em></h4>
-<h4 class="date"><em>2017-05-12</em></h4>
+<h4 class="date"><em>2017-09-21</em></h4>
 
 </div>
 
@@ -732,8 +735,8 @@ kable(head(rna_node_attributes), row.names = F)</code></pre>
 <td align="left">143941</td>
 <td align="left">TTC36</td>
 <td align="left">chr11</td>
-<td align="right">118527494</td>
-<td align="right">118531025</td>
+<td align="right">118527432</td>
+<td align="right">118531197</td>
 <td align="left">+</td>
 </tr>
 <tr class="even">
@@ -927,8 +930,9 @@ protsdf</code></pre>
 <h3>Add gene coordinates of the protein features</h3>
 <p>Since the phenotypic data for the samples has been prepared earlier, arrange to annotate the protein features.</p>
 <pre class="r"><code>suppressPackageStartupMessages(library(Biobase))
-suppressPackageStartupMessages(library(mygene))
-p2r77map &lt;- queryMany(qterms = featureNames(protsdf), scopes = &quot;refseq&quot;,
+suppressPackageStartupMessages(library(mygene))</code></pre>
+<pre><code>## Warning: package &#39;GenomicRanges&#39; was built under R version 3.4.1</code></pre>
+<pre class="r"><code>p2r77map &lt;- queryMany(qterms = featureNames(protsdf), scopes = &quot;refseq&quot;,
                       fields = c(&quot;entrezgene&quot;, &quot;symbol&quot;))</code></pre>
 <pre><code>## Querying chunk 1</code></pre>
 <pre><code>## Querying chunk 2</code></pre>
@@ -1379,70 +1383,73 @@ save.image(file = file.path(basedir, &quot;data-cleaning-environment.RData&quot;
 <h2>Session Info</h2>
 <pre class="r"><code>sessionInfo()</code></pre>
 <pre><code>## R version 3.4.0 (2017-04-21)
-## Platform: x86_64-w64-mingw32/x64 (64-bit)
-## Running under: Windows 10 x64 (build 14393)
+## Platform: x86_64-apple-darwin15.6.0 (64-bit)
+## Running under: macOS Sierra 10.12.6
 ## 
 ## Matrix products: default
+## BLAS: /Library/Frameworks/R.framework/Versions/3.4/Resources/lib/libRblas.0.dylib
+## LAPACK: /Library/Frameworks/R.framework/Versions/3.4/Resources/lib/libRlapack.dylib
 ## 
 ## locale:
-## [1] LC_COLLATE=English_United States.1252 
-## [2] LC_CTYPE=English_United States.1252   
-## [3] LC_MONETARY=English_United States.1252
-## [4] LC_NUMERIC=C                          
-## [5] LC_TIME=English_United States.1252    
+## [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
 ## 
 ## attached base packages:
 ## [1] stats4    parallel  stats     graphics  grDevices utils     datasets 
 ## [8] methods   base     
 ## 
 ## other attached packages:
-##  [1] stringdist_0.9.4.4     fpc_2.1-10             mygene_1.10.0         
-##  [4] GenomicFeatures_1.26.4 GenomicRanges_1.26.4   GenomeInfoDb_1.10.3   
-##  [7] foreach_1.4.3          org.Hs.eg.db_3.4.0     AnnotationDbi_1.36.2  
-## [10] IRanges_2.8.2          S4Vectors_0.12.2       Biobase_2.34.0        
-## [13] BiocGenerics_0.20.0    data.table_1.10.4      ggplot2_2.2.1         
-## [16] knitr_1.15.1          
+##  [1] stringdist_0.9.4.6     fpc_2.1-10             mygene_1.12.0         
+##  [4] GenomicFeatures_1.28.4 GenomicRanges_1.28.5   GenomeInfoDb_1.12.2   
+##  [7] data.table_1.10.4      ggplot2_2.2.1          topGO_2.28.0          
+## [10] SparseM_1.77           GO.db_3.4.1            graph_1.54.0          
+## [13] foreach_1.4.3          org.Hs.eg.db_3.4.1     AnnotationDbi_1.38.2  
+## [16] IRanges_2.10.3         S4Vectors_0.14.4       Biobase_2.36.2        
+## [19] BiocGenerics_0.22.0    knitr_1.17            
 ## 
 ## loaded via a namespace (and not attached):
-##  [1] httr_1.2.1                 jsonlite_1.4              
-##  [3] splines_3.4.0              gsubfn_0.6-6              
-##  [5] Formula_1.2-1              highr_0.6                 
-##  [7] latticeExtra_0.6-28        Rsamtools_1.26.2          
-##  [9] robustbase_0.92-7          yaml_2.1.14               
-## [11] RSQLite_1.1-2              backports_1.0.5           
-## [13] lattice_0.20-35            chron_2.3-50              
-## [15] digest_0.6.12              RColorBrewer_1.1-2        
-## [17] XVector_0.14.1             checkmate_1.8.2           
-## [19] colorspace_1.3-2           htmltools_0.3.6           
-## [21] Matrix_1.2-10              plyr_1.8.4                
-## [23] XML_3.98-1.7               biomaRt_2.30.0            
-## [25] zlibbioc_1.20.0            mvtnorm_1.0-6             
-## [27] scales_0.4.1               BiocParallel_1.8.2        
-## [29] htmlTable_1.9              tibble_1.3.0              
-## [31] sqldf_0.4-10               SummarizedExperiment_1.4.0
-## [33] nnet_7.3-12                lazyeval_0.2.0            
-## [35] proto_1.0.0                survival_2.41-3           
-## [37] magrittr_1.5               mclust_5.2.3              
-## [39] memoise_1.1.0              evaluate_0.10             
-## [41] MASS_7.3-47                class_7.3-14              
-## [43] foreign_0.8-68             tools_3.4.0               
-## [45] trimcluster_0.1-2          stringr_1.2.0             
-## [47] kernlab_0.9-25             munsell_0.4.3             
-## [49] cluster_2.0.6              Biostrings_2.42.1         
-## [51] compiler_3.4.0             grid_3.4.0                
-## [53] RCurl_1.95-4.8             iterators_1.0.8           
-## [55] htmlwidgets_0.8            bitops_1.0-6              
-## [57] base64enc_0.1-3            labeling_0.3              
-## [59] rmarkdown_1.5              gtable_0.2.0              
-## [61] codetools_0.2-15           flexmix_2.3-14            
-## [63] DBI_0.6-1                  curl_2.6                  
-## [65] R6_2.2.1                   GenomicAlignments_1.10.1  
-## [67] gridExtra_2.2.1            prabclus_2.2-6            
-## [69] rtracklayer_1.34.2         Hmisc_4.0-3               
-## [71] rprojroot_1.2              modeltools_0.2-21         
-## [73] stringi_1.1.5              Rcpp_0.12.10              
-## [75] rpart_4.1-11               acepack_1.4.1             
-## [77] DEoptimR_1.0-8             diptest_0.75-7</code></pre>
+##  [1] bitops_1.0-6               matrixStats_0.52.2        
+##  [3] bit64_0.9-7                RColorBrewer_1.1-2        
+##  [5] httr_1.3.1                 rprojroot_1.2             
+##  [7] prabclus_2.2-6             tools_3.4.0               
+##  [9] backports_1.1.0            R6_2.2.2                  
+## [11] rpart_4.1-11               Hmisc_4.0-3               
+## [13] DBI_0.7                    lazyeval_0.2.0            
+## [15] colorspace_1.3-2           trimcluster_0.1-2         
+## [17] nnet_7.3-12                gridExtra_2.3             
+## [19] bit_1.1-12                 curl_2.8.1                
+## [21] compiler_3.4.0             chron_2.3-50              
+## [23] htmlTable_1.9              DelayedArray_0.2.7        
+## [25] rtracklayer_1.36.4         diptest_0.75-7            
+## [27] scales_0.5.0               checkmate_1.8.3           
+## [29] DEoptimR_1.0-8             robustbase_0.92-7         
+## [31] mvtnorm_1.0-6              stringr_1.2.0             
+## [33] digest_0.6.12              Rsamtools_1.28.0          
+## [35] foreign_0.8-69             rmarkdown_1.6             
+## [37] XVector_0.16.0             base64enc_0.1-3           
+## [39] pkgconfig_2.0.1            htmltools_0.3.6           
+## [41] highr_0.6                  htmlwidgets_0.9           
+## [43] rlang_0.1.2                RSQLite_2.0               
+## [45] jsonlite_1.5               mclust_5.3                
+## [47] BiocParallel_1.10.1        acepack_1.4.1             
+## [49] RCurl_1.95-4.8             magrittr_1.5              
+## [51] modeltools_0.2-21          GenomeInfoDbData_0.99.0   
+## [53] Formula_1.2-2              Matrix_1.2-11             
+## [55] Rcpp_0.12.12               munsell_0.4.3             
+## [57] proto_1.0.0                sqldf_0.4-11              
+## [59] stringi_1.1.5              yaml_2.1.14               
+## [61] MASS_7.3-47                SummarizedExperiment_1.6.3
+## [63] zlibbioc_1.22.0            flexmix_2.3-14            
+## [65] plyr_1.8.4                 grid_3.4.0                
+## [67] blob_1.1.0                 lattice_0.20-35           
+## [69] Biostrings_2.44.2          splines_3.4.0             
+## [71] codetools_0.2-15           biomaRt_2.32.1            
+## [73] XML_3.98-1.9               evaluate_0.10.1           
+## [75] latticeExtra_0.6-28        gtable_0.2.0              
+## [77] kernlab_0.9-25             gsubfn_0.6-6              
+## [79] class_7.3-14               survival_2.41-3           
+## [81] tibble_1.3.4               iterators_1.0.8           
+## [83] GenomicAlignments_1.12.2   memoise_1.1.0             
+## [85] cluster_2.0.6</code></pre>
 </div>
 
 <p>Copyright &copy; 2017 Regents of the University of California. All rights reserved.</p>

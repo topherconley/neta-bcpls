@@ -215,7 +215,7 @@ rownames(marg$xy) <- xinfo$id; colnames(marg$xy) <- yinfo$id;
 #Form the marginal network. 
 imarg <- adj2igraph(yy = marg$yy, xy = marg$xy, yinfo = yinfo, xinfo = xinfo)
 #Import spaceMap's Boot.Vote network. 
-pgraphml <- "~/repos/neta-bcpls/neta/spacemap-prot-boot-vote.graphml"
+pgraphml <- "/Users/bioinformatics/repos/neta-bcpls/neta/spacemap-prot-boot-vote.graphml"
 stopifnot(file.exists(pgraphml))
 library(igraph)
 ig <- read_graph(file = pgraphml, format = "graphml")

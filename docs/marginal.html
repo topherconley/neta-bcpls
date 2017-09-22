@@ -298,6 +298,9 @@ div.tocify {
     <li>
       <a href="neta.html">4. Network Analysis</a>
     </li>
+    <li>
+      <a href="marginal.html">5. Marginal Analysis</a>
+    </li>
   </ul>
 </li>
 <li>
@@ -451,7 +454,7 @@ stopifnot(all(colnames(x) == xinfo$id), all(colnames(y) == yinfo$id))</code></pr
 <pre class="r"><code>#Form the marginal network. 
 imarg &lt;- adj2igraph(yy = marg$yy, xy = marg$xy, yinfo = yinfo, xinfo = xinfo)
 #Import spaceMap&#39;s Boot.Vote network. 
-pgraphml &lt;- &quot;~/repos/neta-bcpls/neta/spacemap-prot-boot-vote.graphml&quot;
+pgraphml &lt;- &quot;/Users/bioinformatics/repos/neta-bcpls/neta/spacemap-prot-boot-vote.graphml&quot;
 stopifnot(file.exists(pgraphml))
 library(igraph)
 ig &lt;- read_graph(file = pgraphml, format = &quot;graphml&quot;)</code></pre>

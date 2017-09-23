@@ -480,7 +480,7 @@ ggplot(data = degcna, aes(x = degree, fill = network)) +
   xlab(&quot;CNA hub degree&quot;) + 
   theme_bw()</code></pre>
 <p><img src="marginal_files/figure-html/unnamed-chunk-17-1.png" width="672" /></p>
-<p>There are 234 CNA hubs in the marginal network with 61.1 percent having only one degree. There are 15 CNA hubs in the marginal network with 6.7 percent having only one degree. Next, we identify the specific CNA hubs for both networks.</p>
+<p>There are 234 CNA hubs in the marginal network with 61.1 percent having only one degree. There are 15 CNA hubs in the spaceMap network with 6.7 percent having only one degree. Next, we identify the specific CNA hubs for both networks.</p>
 <pre class="r"><code>marg_xhubs &lt;- as_ids(V(imargxy)[igraph::degree(imargxy) &gt; 0 &amp; V(imargxy)$levels %in% &quot;x&quot;])
 ig_xhubs &lt;- as_ids(V(igxy)[igraph::degree(igxy) &gt; 0 &amp; V(igxy)$levels %in% &quot;x&quot;])</code></pre>
 <p>The 11 common CNA hubs between marginal and spaceMap networks are consistent with the original BCPLS publication, which reported “5q (loss of heterozygosity (LOH) in basal; gain in luminal B), 10p (gain in basal), 12 (gain in basal), 16q (luminal A deletion), 17q (luminal B amplification), and 22q (LOH in luminal and basal)”. Notably, only 22q is absent from the spaceMap analysis and only 3 small-degree CNA hubs (mean degree of 1.19) from 22q are represented by the marginal analysis. The evidence leaves open the possiblity that the the variance filter applied to the original data may have omitted proteins that are perturbed by 22q; or that the CNA hub-wise FDR filter applied in the original BCPLS study , rather than a global FDR correction, allowed the BCPLS authros to report more CNA hub regions.</p>

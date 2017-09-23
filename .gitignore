@@ -1,10 +1,11 @@
+*.DS_Store
 .RData
 neta-bcpls.Rproj
 *.Rproj$
 .Rproj\.user
 .Rhistory
 *_cache
-*_files
+#*_files
 _results
 neta/*html
 neta/.Rhistory

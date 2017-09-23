@@ -263,7 +263,7 @@ ggplot(data = degcna, aes(x = degree, fill = network)) +
   theme_bw()
 ```
 
-There are `r length(marg_cna_deg)` CNA hubs in the marginal network with `r 100*round(prop.table(table(marg_cna_deg))[1], 3)` percent having only one degree. There are `r length(ig_cna_deg)` CNA hubs in the marginal network with `r 100*round(prop.table(table(ig_cna_deg))[1], 3)` percent having only one degree. Next, we identify the specific CNA hubs for both networks. 
+There are `r length(marg_cna_deg)` CNA hubs in the marginal network with `r 100*round(prop.table(table(marg_cna_deg))[1], 3)` percent having only one degree. There are `r length(ig_cna_deg)` CNA hubs in the spaceMap network with `r 100*round(prop.table(table(ig_cna_deg))[1], 3)` percent having only one degree. Next, we identify the specific CNA hubs for both networks. 
 
 ```{r, echo = F}
 #common edges

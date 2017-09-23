@@ -238,12 +238,32 @@ iixy <- igraph::intersection(igxy, imargxy)
 iiyy <- igraph::intersection(igyy, imargyy)
 ```
 
-There are `r length(E(imargxy))` CNA--protein edges in the marginal network compared to  `r length(E(igxy))` in spaceMap's network. The two networks have `r length(E(iixy))` CNA--protein  edges in common. There are `r length(E(imargyy))` protein--protein edges in the marginal network compared to  `r length(E(igyy))` in spaceMap's network. The two networks have `r length(E(iiyy))` proteins--protein  edges in common. There are many CNA hubs with only one degree in the marginal network. 
+There are `r length(E(imargxy))` CNA--protein edges in the marginal network compared to  `r length(E(igxy))` in spaceMap's network. The two networks have `r length(E(iixy))` CNA--protein  edges in common. There are `r length(E(imargyy))` protein--protein edges in the marginal network compared to  `r length(E(igyy))` in spaceMap's network. The two networks have `r length(E(iiyy))` proteins--protein  edges in common.   Next we compare the CNA hub degree distributions between the two networks. 
 
-```{r, message = F}
-library(ggplot2)
-qplot(degree(imargxy)[V(imargxy)[levels %in% "x"]]) + theme_bw() + xlab("CNA hub degree distribution") + ggtitle("Marginal CNA--protein Network")
+```{r, message = F, echo = F, eval = F}
+# library(ggplot2)
+# ggmarg <- qplot(degree(imargxy)[V(imargxy)[levels %in% "x"]]) + theme_bw() + xlab("CNA hub degree distribution") + ggtitle("Marginal CNA--protein Network")
+# ggigxy <- qplot(degree(igxy)[V(igxy)[levels %in% "x"]]) + theme_bw() + xlab("CNA hub degree distribution") + ggtitle("spaceMap CNA--protein Network")
+# library(gridExtra)
+# grid.arrange(ggmarg, ggigxy, ncol = 2)
 ```
+
+```{r}
+#plot CNA hub degree distributions. 
+library(ggplot2)
+marg_cna_deg <- degree(imargxy)[V(imargxy)[levels %in% "x"]]
+ig_cna_deg <- degree(igxy)[V(igxy)[levels %in% "x"]]
+degcna <- data.frame(degree = c(marg_cna_deg, ig_cna_deg),
+                     network = rep(c("marginal", "spaceMap"), 
+                                   times = c(length(marg_cna_deg),
+                                             length(ig_cna_deg))))
+ggplot(data = degcna, aes(x = degree, fill = network)) + 
+  geom_histogram(binwidth = 3) + facet_grid(network ~ ., scale = "free") + 
+  xlab("CNA hub degree") + 
+  theme_bw()
+```
+
+There are `r length(marg_cna_deg)` CNA hubs in the marginal network with `r 100*round(prop.table(table(marg_cna_deg))[1], 3)` percent having only one degree. There are `r length(ig_cna_deg)` CNA hubs in the marginal network with `r 100*round(prop.table(table(ig_cna_deg))[1], 3)` percent having only one degree. Next, we identify the specific CNA hubs for both networks. 
 
 ```{r, echo = F}
 #common edges
@@ -259,13 +279,21 @@ colnames(common_edges) <- c("CNA hub", "Protein")
 #knitr::kable(common_edges)
 ```
 
-The common CNA hubs between marginal and spaceMap networks are consistent with the original BCPLS publication, which reported "5q (loss of heterozygosity (LOH) in basal; gain in luminal B), 10p (gain in basal), 12 (gain in basal), 16q (luminal A deletion), 17q (luminal B amplification), and 22q (LOH in luminal and basal)".  Notably, only  22q is absent from the spaceMap analysis and only 3 small-degree CNA hubs (mean degree of 1.19) from 22q are represented by the marginal analysis. The evidence leaves open the possiblity that the the variance filter applied to the original data may have omitted proteins that are perturbed by 22q. 
-
 ```{r}
 marg_xhubs <- as_ids(V(imargxy)[igraph::degree(imargxy) > 0 & V(imargxy)$levels %in% "x"])
 ig_xhubs <- as_ids(V(igxy)[igraph::degree(igxy) > 0 & V(igxy)$levels %in% "x"])
- xinfo$alias[match(intersect(ig_xhubs, marg_xhubs), xinfo$id)]
 ```
+
+The `r length(intersect(ig_xhubs, marg_xhubs))` common CNA hubs between marginal and spaceMap networks are consistent with the original BCPLS publication, which reported "5q (loss of heterozygosity (LOH) in basal; gain in luminal B), 10p (gain in basal), 12 (gain in basal), 16q (luminal A deletion), 17q (luminal B amplification), and 22q (LOH in luminal and basal)".  Notably, only  22q is absent from the spaceMap analysis and only 3 small-degree CNA hubs (mean degree of 1.19) from 22q are represented by the marginal analysis. The evidence leaves open the possiblity that the the variance filter applied to the original data may have omitted proteins that are perturbed by 22q; or that the CNA hub-wise FDR filter applied in the original BCPLS study , rather than a global FDR correction, allowed the BCPLS authros to report more CNA hub regions. 
+
+```{r, echo = F}
+common_cna_report <- data.frame(`Common CNA hub` = xinfo$alias[match(intersect(ig_xhubs, marg_xhubs), xinfo$id)],
+                                `spaceMap degree` = ig_cna_deg[intersect(ig_xhubs, marg_xhubs)],
+                                `marginal degree` = marg_cna_deg[intersect(ig_xhubs, marg_xhubs)])
+names(common_cna_report) <- c("Common CNA hub", "spaceMap degree", "marginal degree")
+knitr::kable(common_cna_report, row.names = F)
+```
+
 
 The CNA hubs unique to spaceMap (listed below) are associated with module P1, but are not associated with any specific GO-enriched proteins. Those CNA hubs are: 
 

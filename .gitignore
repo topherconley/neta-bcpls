@@ -8,6 +8,7 @@ neta-bcpls.Rproj
 _results
 neta/*html
 neta/.Rhistory
+docs/old-neta
 docs/model-fits
 docs/neta/*.Rmd
 docs/neta/*.R

@@ -11,7 +11,7 @@
 
 <meta name="author" content="Christopher Conley, Pei Wang, Umut Ozbek, Jie Peng" />
 
-<meta name="date" content="2017-09-21" />
+<meta name="date" content="2017-09-23" />
 
 <title>BCPLS Marginal Analysis</title>
 
@@ -327,7 +327,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">BCPLS Marginal Analysis</h1>
 <h4 class="author"><em>Christopher Conley, Pei Wang, Umut Ozbek, Jie Peng</em></h4>
-<h4 class="date"><em>2017-09-21</em></h4>
+<h4 class="date"><em>2017-09-23</em></h4>
 
 </div>
 
@@ -466,17 +466,90 @@ igyy &lt;- igraph::subgraph.edges(ig, eids = E(ig)[levels %in% &quot;y-y&quot;])
 # what is common
 iixy &lt;- igraph::intersection(igxy, imargxy)
 iiyy &lt;- igraph::intersection(igyy, imargyy)</code></pre>
-<p>There are 669 CNA–protein edges in the marginal network compared to 585 in spaceMap’s network. The two networks have 59 CNA–protein edges in common. There are 416 protein–protein edges in the marginal network compared to 954 in spaceMap’s network. The two networks have 8 proteins–protein edges in common. There are many CNA hubs with only one degree in the marginal network.</p>
-<pre class="r"><code>library(ggplot2)
-qplot(degree(imargxy)[V(imargxy)[levels %in% &quot;x&quot;]]) + theme_bw() + xlab(&quot;CNA hub degree distribution&quot;) + ggtitle(&quot;Marginal CNA--protein Network&quot;)</code></pre>
-<p><img src="marginal_files/figure-html/unnamed-chunk-16-1.png" width="672" /></p>
-<p>The common CNA hubs between marginal and spaceMap networks are consistent with the original BCPLS publication, which reported “5q (loss of heterozygosity (LOH) in basal; gain in luminal B), 10p (gain in basal), 12 (gain in basal), 16q (luminal A deletion), 17q (luminal B amplification), and 22q (LOH in luminal and basal)”. Notably, only 22q is absent from the spaceMap analysis and only 3 small-degree CNA hubs (mean degree of 1.19) from 22q are represented by the marginal analysis. The evidence leaves open the possiblity that the the variance filter applied to the original data may have omitted proteins that are perturbed by 22q.</p>
+<p>There are 669 CNA–protein edges in the marginal network compared to 585 in spaceMap’s network. The two networks have 59 CNA–protein edges in common. There are 416 protein–protein edges in the marginal network compared to 954 in spaceMap’s network. The two networks have 8 proteins–protein edges in common. Next we compare the CNA hub degree distributions between the two networks.</p>
+<pre class="r"><code>#plot CNA hub degree distributions. 
+library(ggplot2)
+marg_cna_deg &lt;- degree(imargxy)[V(imargxy)[levels %in% &quot;x&quot;]]
+ig_cna_deg &lt;- degree(igxy)[V(igxy)[levels %in% &quot;x&quot;]]
+degcna &lt;- data.frame(degree = c(marg_cna_deg, ig_cna_deg),
+                     network = rep(c(&quot;marginal&quot;, &quot;spaceMap&quot;), 
+                                   times = c(length(marg_cna_deg),
+                                             length(ig_cna_deg))))
+ggplot(data = degcna, aes(x = degree, fill = network)) + 
+  geom_histogram(binwidth = 3) + facet_grid(network ~ ., scale = &quot;free&quot;) + 
+  xlab(&quot;CNA hub degree&quot;) + 
+  theme_bw()</code></pre>
+<p><img src="marginal_files/figure-html/unnamed-chunk-17-1.png" width="672" /></p>
+<p>There are 234 CNA hubs in the marginal network with 61.1 percent having only one degree. There are 15 CNA hubs in the marginal network with 6.7 percent having only one degree. Next, we identify the specific CNA hubs for both networks.</p>
 <pre class="r"><code>marg_xhubs &lt;- as_ids(V(imargxy)[igraph::degree(imargxy) &gt; 0 &amp; V(imargxy)$levels %in% &quot;x&quot;])
-ig_xhubs &lt;- as_ids(V(igxy)[igraph::degree(igxy) &gt; 0 &amp; V(igxy)$levels %in% &quot;x&quot;])
- xinfo$alias[match(intersect(ig_xhubs, marg_xhubs), xinfo$id)]</code></pre>
-<pre><code>##  [1] &quot;5q34&quot;         &quot;8q21.2-22.1&quot;  &quot;10p15.1-15.3&quot; &quot;11q13.5-14.1&quot;
-##  [5] &quot;12q21.1&quot;      &quot;16p12.1-12.3&quot; &quot;16q22.1&quot;      &quot;16q22.1-22.2&quot;
-##  [9] &quot;17q12&quot;        &quot;17q21.32&quot;     &quot;17q23.1-23.2&quot;</code></pre>
+ig_xhubs &lt;- as_ids(V(igxy)[igraph::degree(igxy) &gt; 0 &amp; V(igxy)$levels %in% &quot;x&quot;])</code></pre>
+<p>The 11 common CNA hubs between marginal and spaceMap networks are consistent with the original BCPLS publication, which reported “5q (loss of heterozygosity (LOH) in basal; gain in luminal B), 10p (gain in basal), 12 (gain in basal), 16q (luminal A deletion), 17q (luminal B amplification), and 22q (LOH in luminal and basal)”. Notably, only 22q is absent from the spaceMap analysis and only 3 small-degree CNA hubs (mean degree of 1.19) from 22q are represented by the marginal analysis. The evidence leaves open the possiblity that the the variance filter applied to the original data may have omitted proteins that are perturbed by 22q; or that the CNA hub-wise FDR filter applied in the original BCPLS study , rather than a global FDR correction, allowed the BCPLS authros to report more CNA hub regions.</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Common CNA hub</th>
+<th align="right">spaceMap degree</th>
+<th align="right">marginal degree</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">5q34</td>
+<td align="right">129</td>
+<td align="right">21</td>
+</tr>
+<tr class="even">
+<td align="left">8q21.2-22.1</td>
+<td align="right">1</td>
+<td align="right">1</td>
+</tr>
+<tr class="odd">
+<td align="left">10p15.1-15.3</td>
+<td align="right">86</td>
+<td align="right">5</td>
+</tr>
+<tr class="even">
+<td align="left">11q13.5-14.1</td>
+<td align="right">11</td>
+<td align="right">3</td>
+</tr>
+<tr class="odd">
+<td align="left">12q21.1</td>
+<td align="right">4</td>
+<td align="right">1</td>
+</tr>
+<tr class="even">
+<td align="left">16p12.1-12.3</td>
+<td align="right">21</td>
+<td align="right">3</td>
+</tr>
+<tr class="odd">
+<td align="left">16q22.1</td>
+<td align="right">16</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">16q22.1-22.2</td>
+<td align="right">72</td>
+<td align="right">5</td>
+</tr>
+<tr class="odd">
+<td align="left">17q12</td>
+<td align="right">52</td>
+<td align="right">6</td>
+</tr>
+<tr class="even">
+<td align="left">17q21.32</td>
+<td align="right">99</td>
+<td align="right">10</td>
+</tr>
+<tr class="odd">
+<td align="left">17q23.1-23.2</td>
+<td align="right">21</td>
+<td align="right">2</td>
+</tr>
+</tbody>
+</table>
 <p>The CNA hubs unique to spaceMap (listed below) are associated with module P1, but are not associated with any specific GO-enriched proteins. Those CNA hubs are:</p>
 <pre class="r"><code>#as_data_frame(x = ig, what = &quot;vertices&quot;)[setdiff(ig_xhubs, marg_xhubs),]
 ucna_smap &lt;- xinfo$alias[match(setdiff(ig_xhubs, marg_xhubs), xinfo$id)]

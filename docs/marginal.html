@@ -11,7 +11,7 @@
 
 <meta name="author" content="Christopher Conley, Pei Wang, Umut Ozbek, Jie Peng" />
 
-<meta name="date" content="2017-09-23" />
+<meta name="date" content="2017-09-24" />
 
 <title>BCPLS Marginal Analysis</title>
 
@@ -301,6 +301,9 @@ div.tocify {
     <li>
       <a href="marginal.html">5. Marginal Analysis</a>
     </li>
+    <li>
+      <a href="cna-hub-adjacency.html">6. Hub Adjacency Analysis</a>
+    </li>
   </ul>
 </li>
 <li>
@@ -327,7 +330,7 @@ div.tocify {
 
 <h1 class="title toc-ignore">BCPLS Marginal Analysis</h1>
 <h4 class="author"><em>Christopher Conley, Pei Wang, Umut Ozbek, Jie Peng</em></h4>
-<h4 class="date"><em>2017-09-23</em></h4>
+<h4 class="date"><em>2017-09-24</em></h4>
 
 </div>
 
@@ -402,13 +405,12 @@ pyypval &lt;- yyPvalues(y = y, method = &quot;pearson&quot;, rdsfile = pyyfile)<
 <p>Read in the pre-computed P-values from file.</p>
 <pre class="r"><code>pxypval &lt;- readRDS(&quot;~/scratch-data/neta-bcpls/marginal/xy_pearson_protein_bcpls.rds&quot;)
 pyypval &lt;- readRDS(&quot;~/scratch-data/neta-bcpls/marginal/yy_pearson_protein_bcpls.rds&quot;)</code></pre>
-<p>Form the adjacency matrices of the marginal (Pearson correlation) network. Apply the Benjamini-Hochberg correction to every (CNA–protein, protein–protein) interaction and then keep only those interactions that pass an FDR &lt; 0.1. This method produces what we refer to hereafter as the “marginal network” from the significant protein-CNA interactions based on Pearson correlations (FDR &lt; 0.1). Note that an FDR threshold of 0.05 and 0.01 produce the same number of significant edges. An FDR of 0.1 is a reasonable threshold for exploratory network analyses such as this.</p>
+<p>Form the adjacency matrices of the marginal (Pearson correlation) network. Apply the Benjamini-Hochberg correction to every (CNA–protein, protein–protein) interaction and then keep only those interactions that pass an FDR &lt; 0.05. This method produces what we refer to hereafter as the “marginal network” from the significant protein-CNA interactions based on Pearson correlations (FDR &lt; 0.05). Note that varying the FDR produces relatively the same number of <span class="math inline">\(y-y\)</span> edges, while the number of <span class="math inline">\(x-y\)</span> edges increaes dramatically with increasing FDR suggesting many of the <span class="math inline">\(x-y\)</span> edges are not very stable.</p>
 <pre class="r"><code>adjMatCor &lt;- function(xp, dyp, x, y, thresh = 0.1) { 
   
   #partition and index x--y vs y--y
   xp &lt;- as.numeric(xp)
   yp &lt;- as.matrix(dyp$pvalue)
-  thresh &lt;- 0.01
   nxp &lt;- length(xp)
   nyp &lt;- length(yp)
   xi &lt;- 1:nxp
@@ -443,7 +445,7 @@ pyypval &lt;- readRDS(&quot;~/scratch-data/neta-bcpls/marginal/yy_pearson_protei
   #return list of adjacency matrices
   list(yy = adjyy, xy = adjxy)
 }
-marg &lt;- adjMatCor(xp = pxypval, dyp = pyypval, x = x, y = y, thresh = 0.1)
+marg &lt;- adjMatCor(xp = pxypval, dyp = pyypval, x = x, y = y, thresh = 0.05)
 #check to make feature labels are correct.
 stopifnot(all(colnames(x) == xinfo$id), all(colnames(y) == yinfo$id))</code></pre>
 </div>
@@ -466,7 +468,7 @@ igyy &lt;- igraph::subgraph.edges(ig, eids = E(ig)[levels %in% &quot;y-y&quot;])
 # what is common
 iixy &lt;- igraph::intersection(igxy, imargxy)
 iiyy &lt;- igraph::intersection(igyy, imargyy)</code></pre>
-<p>There are 669 CNA–protein edges in the marginal network compared to 585 in spaceMap’s network. The two networks have 59 CNA–protein edges in common. There are 416 protein–protein edges in the marginal network compared to 954 in spaceMap’s network. The two networks have 8 proteins–protein edges in common. Next we compare the CNA hub degree distributions between the two networks.</p>
+<p>There are 2103 CNA–protein edges in the marginal network compared to 585 in spaceMap’s network. The two networks have 163 CNA–protein edges in common. There are 535 protein–protein edges in the marginal network compared to 954 in spaceMap’s network. The two networks have 10 proteins–protein edges in common. Next we compare the CNA hub degree distributions between the two networks.</p>
 <pre class="r"><code>#plot CNA hub degree distributions. 
 library(ggplot2)
 marg_cna_deg &lt;- degree(imargxy)[V(imargxy)[levels %in% &quot;x&quot;]]
@@ -480,10 +482,10 @@ ggplot(data = degcna, aes(x = degree, fill = network)) +
   xlab(&quot;CNA hub degree&quot;) + 
   theme_bw()</code></pre>
 <p><img src="marginal_files/figure-html/unnamed-chunk-17-1.png" width="672" /></p>
-<p>There are 234 CNA hubs in the marginal network with 61.1 percent having only one degree. There are 15 CNA hubs in the spaceMap network with 6.7 percent having only one degree. Next, we identify the specific CNA hubs for both networks.</p>
+<p>There are 528 CNA hubs in the marginal network with 47.9 percent having only one degree. There are 15 CNA hubs in the spaceMap network with 6.7 percent having only one degree. Next, we identify the specific CNA hubs for both networks.</p>
 <pre class="r"><code>marg_xhubs &lt;- as_ids(V(imargxy)[igraph::degree(imargxy) &gt; 0 &amp; V(imargxy)$levels %in% &quot;x&quot;])
 ig_xhubs &lt;- as_ids(V(igxy)[igraph::degree(igxy) &gt; 0 &amp; V(igxy)$levels %in% &quot;x&quot;])</code></pre>
-<p>The 11 common CNA hubs between marginal and spaceMap networks are consistent with the original BCPLS publication, which reported “5q (loss of heterozygosity (LOH) in basal; gain in luminal B), 10p (gain in basal), 12 (gain in basal), 16q (luminal A deletion), 17q (luminal B amplification), and 22q (LOH in luminal and basal)”. Notably, only 22q is absent from the spaceMap analysis and only 3 small-degree CNA hubs (mean degree of 1.19) from 22q are represented by the marginal analysis. The evidence leaves open the possiblity that the the variance filter applied to the original data may have omitted proteins that are perturbed by 22q; or that the CNA hub-wise FDR filter applied in the original BCPLS study , rather than a global FDR correction, allowed the BCPLS authros to report more CNA hub regions.</p>
+<p>The 15 common CNA hubs between marginal and spaceMap networks are consistent with the original BCPLS publication, which reported “5q (loss of heterozygosity (LOH) in basal; gain in luminal B), 10p (gain in basal), 12 (gain in basal), 16q (luminal A deletion), 17q (luminal B amplification), and 22q (LOH in luminal and basal)”. Notably, only 22q is absent from the spaceMap analysis and only a few small-degree CNA hubs (mean degree of 1.19) from 22q are represented by the marginal analysis. The evidence leaves open the possiblity that the the variance filter applied to the original data may have omitted proteins that are perturbed by 22q; or that the CNA hub-wise FDR filter applied in the original BCPLS study , rather than a global FDR correction, allowed the BCPLS authros to report more CNA hub regions.</p>
 <table>
 <thead>
 <tr class="header">
@@ -494,68 +496,88 @@ ig_xhubs &lt;- as_ids(V(igxy)[igraph::degree(igxy) &gt; 0 &amp; V(igxy)$levels %
 </thead>
 <tbody>
 <tr class="odd">
+<td align="left">5p12-5q11.1</td>
+<td align="right">25</td>
+<td align="right">7</td>
+</tr>
+<tr class="even">
 <td align="left">5q34</td>
 <td align="right">129</td>
-<td align="right">21</td>
+<td align="right">50</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">8q21.2-22.1</td>
 <td align="right">1</td>
-<td align="right">1</td>
-</tr>
-<tr class="odd">
-<td align="left">10p15.1-15.3</td>
-<td align="right">86</td>
-<td align="right">5</td>
+<td align="right">2</td>
 </tr>
 <tr class="even">
-<td align="left">11q13.5-14.1</td>
-<td align="right">11</td>
-<td align="right">3</td>
+<td align="left">10p15.1-15.3</td>
+<td align="right">86</td>
+<td align="right">27</td>
 </tr>
 <tr class="odd">
+<td align="left">11q13.5-14.1</td>
+<td align="right">11</td>
+<td align="right">4</td>
+</tr>
+<tr class="even">
 <td align="left">12q21.1</td>
 <td align="right">4</td>
-<td align="right">1</td>
+<td align="right">5</td>
+</tr>
+<tr class="odd">
+<td align="left">15q13.1-15.1</td>
+<td align="right">36</td>
+<td align="right">3</td>
 </tr>
 <tr class="even">
 <td align="left">16p12.1-12.3</td>
 <td align="right">21</td>
-<td align="right">3</td>
+<td align="right">4</td>
 </tr>
 <tr class="odd">
 <td align="left">16q22.1</td>
 <td align="right">16</td>
-<td align="right">2</td>
+<td align="right">10</td>
 </tr>
 <tr class="even">
 <td align="left">16q22.1-22.2</td>
 <td align="right">72</td>
+<td align="right">27</td>
+</tr>
+<tr class="odd">
+<td align="left">17p11.2</td>
+<td align="right">7</td>
+<td align="right">4</td>
+</tr>
+<tr class="even">
+<td align="left">17p11.2</td>
 <td align="right">5</td>
+<td align="right">3</td>
 </tr>
 <tr class="odd">
 <td align="left">17q12</td>
 <td align="right">52</td>
-<td align="right">6</td>
+<td align="right">8</td>
 </tr>
 <tr class="even">
 <td align="left">17q21.32</td>
 <td align="right">99</td>
-<td align="right">10</td>
+<td align="right">26</td>
 </tr>
 <tr class="odd">
 <td align="left">17q23.1-23.2</td>
 <td align="right">21</td>
-<td align="right">2</td>
+<td align="right">4</td>
 </tr>
 </tbody>
 </table>
-<p>The CNA hubs unique to spaceMap (listed below) are associated with module P1, but are not associated with any specific GO-enriched proteins. Those CNA hubs are:</p>
+<p>There are no CNA hubs unique to spaceMap.</p>
 <pre class="r"><code>#as_data_frame(x = ig, what = &quot;vertices&quot;)[setdiff(ig_xhubs, marg_xhubs),]
 ucna_smap &lt;- xinfo$alias[match(setdiff(ig_xhubs, marg_xhubs), xinfo$id)]
 ucna_smap</code></pre>
-<pre><code>## [1] &quot;5p12-5q11.1&quot;  &quot;15q13.1-15.1&quot; &quot;17p11.2&quot;      &quot;17p11.2&quot;</code></pre>
-<p>The CNA hubs unique to the marginal network have generally much smaller degree than the spaceMap network and are represented across 19 chromosomes. In the following table, we list chromosome with the frequency of reported CNA hubs <em>unique</em> to the marginal analysis. The mean degree of the CNA hubs in the marginal network is 2.8589744, while for spaceMap it is 39. The marginal network clearly reports more CNA perturbing the genome, but the effect is more diminished.</p>
+<pre><code>## character(0)</code></pre>
+<p>The CNA hubs unique to the marginal network have generally much smaller degree than the spaceMap network and are represented across 19 chromosomes. In the following table, we list chromosome with the frequency of reported CNA hubs <em>unique</em> to the marginal analysis. The mean degree of the CNA hubs in the marginal network is 3.9829545, while for spaceMap it is 39. The marginal network clearly reports more CNA perturbing the genome, but the effect is more diminished.</p>
 <pre class="r"><code>ucna_marg &lt;- xinfo$alias[match(setdiff(marg_xhubs, ig_xhubs), xinfo$id)]
 ucna_marg_df &lt;- data.frame(cytoband = ucna_marg, id = setdiff(marg_xhubs, ig_xhubs))
 ucna_marg_tab &lt;- table(sapply(strsplit(ucna_marg, split = &quot;p|q&quot;), function(x) x[1]))
@@ -576,98 +598,108 @@ knitr::kable(ucna_marg_tab2, row.names = F)</code></pre>
 <tbody>
 <tr class="odd">
 <td align="left">17</td>
-<td align="right">68</td>
-<td align="right">1.76</td>
+<td align="right">113</td>
+<td align="right">2.50</td>
+</tr>
+<tr class="even">
+<td align="left">11</td>
+<td align="right">69</td>
+<td align="right">2.97</td>
+</tr>
+<tr class="odd">
+<td align="left">12</td>
+<td align="right">60</td>
+<td align="right">2.27</td>
 </tr>
 <tr class="even">
 <td align="left">5</td>
 <td align="right">34</td>
-<td align="right">5.48</td>
+<td align="right">9.19</td>
 </tr>
 <tr class="odd">
-<td align="left">11</td>
-<td align="right">23</td>
-<td align="right">2.27</td>
-</tr>
-<tr class="even">
-<td align="left">12</td>
-<td align="right">15</td>
-<td align="right">1.44</td>
-</tr>
-<tr class="odd">
-<td align="left">16</td>
-<td align="right">15</td>
-<td align="right">1.50</td>
-</tr>
-<tr class="even">
 <td align="left">14</td>
-<td align="right">14</td>
-<td align="right">2.90</td>
-</tr>
-<tr class="odd">
-<td align="left">15</td>
-<td align="right">12</td>
-<td align="right">1.29</td>
+<td align="right">29</td>
+<td align="right">4.00</td>
 </tr>
 <tr class="even">
 <td align="left">8</td>
-<td align="right">9</td>
-<td align="right">1.00</td>
+<td align="right">24</td>
+<td align="right">1.28</td>
 </tr>
 <tr class="odd">
+<td align="left">15</td>
+<td align="right">22</td>
+<td align="right">2.49</td>
+</tr>
+<tr class="even">
 <td align="left">2</td>
-<td align="right">8</td>
-<td align="right">2.10</td>
+<td align="right">22</td>
+<td align="right">3.17</td>
+</tr>
+<tr class="odd">
+<td align="left">16</td>
+<td align="right">21</td>
+<td align="right">4.74</td>
 </tr>
 <tr class="even">
 <td align="left">6</td>
-<td align="right">6</td>
-<td align="right">1.58</td>
+<td align="right">16</td>
+<td align="right">3.14</td>
 </tr>
 <tr class="odd">
-<td align="left">9</td>
-<td align="right">5</td>
-<td align="right">1.17</td>
-</tr>
-<tr class="even">
 <td align="left">10</td>
-<td align="right">4</td>
-<td align="right">2.00</td>
-</tr>
-<tr class="odd">
-<td align="left">22</td>
-<td align="right">3</td>
-<td align="right">1.19</td>
+<td align="right">15</td>
+<td align="right">3.53</td>
 </tr>
 <tr class="even">
-<td align="left">1</td>
-<td align="right">2</td>
-<td align="right">2.12</td>
+<td align="left">9</td>
+<td align="right">15</td>
+<td align="right">2.08</td>
 </tr>
 <tr class="odd">
+<td align="left">20</td>
+<td align="right">13</td>
+<td align="right">1.15</td>
+</tr>
+<tr class="even">
 <td align="left">18</td>
-<td align="right">1</td>
-<td align="right">1.00</td>
-</tr>
-<tr class="even">
-<td align="left">19</td>
-<td align="right">1</td>
-<td align="right">1.00</td>
+<td align="right">11</td>
+<td align="right">1.27</td>
 </tr>
 <tr class="odd">
 <td align="left">3</td>
-<td align="right">1</td>
-<td align="right">4.04</td>
+<td align="right">11</td>
+<td align="right">4.81</td>
 </tr>
 <tr class="even">
 <td align="left">4</td>
-<td align="right">1</td>
-<td align="right">3.35</td>
+<td align="right">10</td>
+<td align="right">3.95</td>
 </tr>
 <tr class="odd">
+<td align="left">19</td>
+<td align="right">9</td>
+<td align="right">1.56</td>
+</tr>
+<tr class="even">
+<td align="left">1</td>
+<td align="right">8</td>
+<td align="right">3.10</td>
+</tr>
+<tr class="odd">
+<td align="left">22</td>
+<td align="right">6</td>
+<td align="right">2.55</td>
+</tr>
+<tr class="even">
 <td align="left">7</td>
-<td align="right">1</td>
-<td align="right">1.75</td>
+<td align="right">3</td>
+<td align="right">2.47</td>
+</tr>
+<tr class="odd">
+<td align="left">21</td>
+<td align="right">2</td>
+<td align="right">2.49</td>
 </tr>
 </tbody>
 </table>
@@ -693,303 +725,303 @@ imarg &lt;- cisTrans(ig = imarg, level = &quot;x-y&quot;)</code></pre>
 </thead>
 <tbody>
 <tr class="odd">
+<td align="left">5q34 (160-170 Mb)</td>
+<td align="left">0 / 50</td>
+<td align="right">0</td>
+<td align="left">–</td>
+</tr>
+<tr class="even">
+<td align="left">5q35.3 (180-180 Mb)</td>
+<td align="left">0 / 47</td>
+<td align="right">6</td>
+<td align="left">–</td>
+</tr>
+<tr class="odd">
 <td align="left">5q33.3-34 (160-160 Mb)</td>
-<td align="left">0 / 23</td>
+<td align="left">0 / 43</td>
 <td align="right">1</td>
 <td align="left">–</td>
 </tr>
 <tr class="even">
 <td align="left">5q35.3 (180-180 Mb)</td>
-<td align="left">0 / 22</td>
+<td align="left">0 / 42</td>
 <td align="right">6</td>
 <td align="left">–</td>
 </tr>
 <tr class="odd">
-<td align="left">5q34 (160-170 Mb)</td>
-<td align="left">0 / 21</td>
-<td align="right">0</td>
-<td align="left">–</td>
-</tr>
-<tr class="even">
 <td align="left">5q14.3 (88-89 Mb)</td>
-<td align="left">0 / 18</td>
+<td align="left">1 / 38</td>
 <td align="right">2</td>
-<td align="left">–</td>
-</tr>
-<tr class="odd">
-<td align="left">5q34 (170-170 Mb)</td>
-<td align="left">0 / 18</td>
-<td align="right">0</td>
-<td align="left">–</td>
+<td align="left">CETN3</td>
 </tr>
 <tr class="even">
-<td align="left">5q33.1-33.3 (150-160 Mb)</td>
-<td align="left">0 / 17</td>
-<td align="right">8</td>
-<td align="left">–</td>
-</tr>
-<tr class="odd">
-<td align="left">5q34-35.1 (170-170 Mb)</td>
-<td align="left">0 / 17</td>
+<td align="left">5q14.3 (89-91 Mb)</td>
+<td align="left">1 / 37</td>
 <td align="right">2</td>
-<td align="left">–</td>
-</tr>
-<tr class="even">
-<td align="left">5q35.3 (180-180 Mb)</td>
-<td align="left">0 / 17</td>
-<td align="right">6</td>
-<td align="left">–</td>
+<td align="left">CETN3</td>
 </tr>
 <tr class="odd">
 <td align="left">5q35.2-35.3 (180-180 Mb)</td>
-<td align="left">0 / 16</td>
+<td align="left">0 / 37</td>
 <td align="right">8</td>
 <td align="left">–</td>
 </tr>
 <tr class="even">
 <td align="left">5q34 (170-170 Mb)</td>
-<td align="left">0 / 15</td>
+<td align="left">0 / 36</td>
 <td align="right">0</td>
 <td align="left">–</td>
 </tr>
 <tr class="odd">
-<td align="left">5q14.3 (89-91 Mb)</td>
-<td align="left">0 / 14</td>
-<td align="right">2</td>
+<td align="left">5q33.1-33.3 (150-160 Mb)</td>
+<td align="left">0 / 35</td>
+<td align="right">8</td>
 <td align="left">–</td>
 </tr>
 <tr class="even">
 <td align="left">5q35.2 (170-180 Mb)</td>
-<td align="left">0 / 14</td>
+<td align="left">0 / 35</td>
 <td align="right">8</td>
 <td align="left">–</td>
 </tr>
 <tr class="odd">
 <td align="left">5q11.2-14.3 (59-88 Mb)</td>
-<td align="left">0 / 13</td>
+<td align="left">2 / 32</td>
 <td align="right">15</td>
-<td align="left">–</td>
+<td align="left">MCCC2, CETN3</td>
 </tr>
 <tr class="even">
 <td align="left">5q23.2-23.3 (130-130 Mb)</td>
-<td align="left">0 / 11</td>
+<td align="left">0 / 34</td>
 <td align="right">4</td>
 <td align="left">–</td>
 </tr>
 <tr class="odd">
 <td align="left">5q14.3-23.2 (91-130 Mb)</td>
-<td align="left">1 / 9</td>
+<td align="left">2 / 31</td>
 <td align="right">12</td>
-<td align="left">NUDT12</td>
+<td align="left">NUDT12, CETN3</td>
 </tr>
 <tr class="even">
-<td align="left">17q21.32 (46-46 Mb)</td>
-<td align="left">0 / 10</td>
-<td align="right">14</td>
-<td align="left">–</td>
-</tr>
-<tr class="odd">
-<td align="left">5q11.2 (58-59 Mb)</td>
-<td align="left">0 / 9</td>
-<td align="right">6</td>
-<td align="left">–</td>
-</tr>
-<tr class="even">
-<td align="left">5q23.2 (130-130 Mb)</td>
-<td align="left">0 / 9</td>
-<td align="right">3</td>
-<td align="left">–</td>
-</tr>
-<tr class="odd">
-<td align="left">5q23.3-33.1 (130-150 Mb)</td>
-<td align="left">0 / 9</td>
-<td align="right">16</td>
-<td align="left">–</td>
-</tr>
-<tr class="even">
-<td align="left">5q35.2 (170-170 Mb)</td>
-<td align="left">0 / 9</td>
-<td align="right">7</td>
-<td align="left">–</td>
-</tr>
-<tr class="odd">
-<td align="left">17q21.32 (45-46 Mb)</td>
-<td align="left">0 / 8</td>
-<td align="right">15</td>
-<td align="left">–</td>
-</tr>
-<tr class="even">
-<td align="left">5q11.2 (52-53 Mb)</td>
-<td align="left">0 / 7</td>
-<td align="right">3</td>
-<td align="left">–</td>
-</tr>
-<tr class="odd">
-<td align="left">5q11.2 (58-58 Mb)</td>
-<td align="left">0 / 7</td>
-<td align="right">6</td>
-<td align="left">–</td>
-</tr>
-<tr class="even">
-<td align="left">5q11.2 (53-56 Mb)</td>
-<td align="left">0 / 6</td>
-<td align="right">7</td>
-<td align="left">–</td>
-</tr>
-<tr class="odd">
-<td align="left">5q11.2 (57-58 Mb)</td>
-<td align="left">0 / 6</td>
-<td align="right">6</td>
-<td align="left">–</td>
-</tr>
-<tr class="even">
-<td align="left">5q35.2 (170-170 Mb)</td>
-<td align="left">0 / 6</td>
-<td align="right">7</td>
-<td align="left">–</td>
-</tr>
-<tr class="odd">
-<td align="left">5q35.2 (170-170 Mb)</td>
-<td align="left">0 / 6</td>
-<td align="right">7</td>
-<td align="left">–</td>
-</tr>
-<tr class="even">
-<td align="left">17q12 (38-38 Mb)</td>
-<td align="left">4 / 2</td>
-<td align="right">34</td>
-<td align="left">ERBB2, GRB7, PNMT, MIEN1</td>
-</tr>
-<tr class="odd">
-<td align="left">5q11.2 (56-57 Mb)</td>
-<td align="left">0 / 5</td>
-<td align="right">7</td>
-<td align="left">–</td>
-</tr>
-<tr class="even">
-<td align="left">5q35.1 (170-170 Mb)</td>
-<td align="left">0 / 5</td>
+<td align="left">5q34-35.1 (170-170 Mb)</td>
+<td align="left">0 / 33</td>
 <td align="right">2</td>
 <td align="left">–</td>
 </tr>
 <tr class="odd">
+<td align="left">5q23.2 (130-130 Mb)</td>
+<td align="left">0 / 31</td>
+<td align="right">3</td>
+<td align="left">–</td>
+</tr>
+<tr class="even">
+<td align="left">5q23.3-33.1 (130-150 Mb)</td>
+<td align="left">0 / 31</td>
+<td align="right">16</td>
+<td align="left">–</td>
+</tr>
+<tr class="odd">
 <td align="left">10p15.1-15.3 (0.42-4 Mb)</td>
-<td align="left">0 / 5</td>
+<td align="left">0 / 27</td>
 <td align="right">10</td>
 <td align="left">–</td>
 </tr>
 <tr class="even">
 <td align="left">16q22.1-22.2 (68-71 Mb)</td>
-<td align="left">0 / 5</td>
+<td align="left">2 / 25</td>
 <td align="right">13</td>
-<td align="left">–</td>
+<td align="left">GLG1, GLG1</td>
 </tr>
 <tr class="odd">
-<td align="left">17q12 (37-37 Mb)</td>
-<td align="left">3 / 2</td>
-<td align="right">33</td>
-<td align="left">ERBB2, GRB7, MIEN1</td>
-</tr>
-<tr class="even">
-<td align="left">17q12 (37-38 Mb)</td>
-<td align="left">3 / 2</td>
-<td align="right">34</td>
-<td align="left">ERBB2, GRB7, MIEN1</td>
-</tr>
-<tr class="odd">
-<td align="left">17q12 (38-38 Mb)</td>
-<td align="left">3 / 2</td>
-<td align="right">34</td>
-<td align="left">ERBB2, GRB7, MIEN1</td>
-</tr>
-<tr class="even">
-<td align="left">5q35.1 (170-170 Mb)</td>
-<td align="left">0 / 4</td>
-<td align="right">2</td>
-<td align="left">–</td>
-</tr>
-<tr class="odd">
-<td align="left">5q35.1-35.2 (170-170 Mb)</td>
-<td align="left">0 / 4</td>
-<td align="right">4</td>
+<td align="left">5q34 (170-170 Mb)</td>
+<td align="left">0 / 26</td>
+<td align="right">0</td>
 <td align="left">–</td>
 </tr>
 <tr class="even">
-<td align="left">5q35.2 (170-170 Mb)</td>
-<td align="left">0 / 4</td>
-<td align="right">7</td>
+<td align="left">17q21.32 (46-46 Mb)</td>
+<td align="left">0 / 26</td>
+<td align="right">14</td>
 <td align="left">–</td>
 </tr>
 <tr class="odd">
-<td align="left">17q12-21.1 (38-38 Mb)</td>
-<td align="left">3 / 1</td>
-<td align="right">34</td>
-<td align="left">ERBB2, GRB7, MIEN1</td>
-</tr>
-<tr class="even">
-<td align="left">17q21.1 (38-38 Mb)</td>
-<td align="left">3 / 1</td>
-<td align="right">34</td>
-<td align="left">ERBB2, GRB7, MIEN1</td>
-</tr>
-<tr class="odd">
-<td align="left">17q25.1 (72-73 Mb)</td>
-<td align="left">4 / 0</td>
-<td align="right">22</td>
-<td align="left">SLC9A3R1, FDXR, FDXR, WBP2</td>
-</tr>
-<tr class="even">
-<td align="left">17q25.1 (73-74 Mb)</td>
-<td align="left">4 / 0</td>
-<td align="right">22</td>
-<td align="left">SLC9A3R1, FDXR, FDXR, WBP2</td>
-</tr>
-<tr class="odd">
-<td align="left">17q25.1 (74-74 Mb)</td>
-<td align="left">4 / 0</td>
-<td align="right">22</td>
-<td align="left">SLC9A3R1, FDXR, FDXR, WBP2</td>
-</tr>
-<tr class="even">
-<td align="left">5q11.2 (57-57 Mb)</td>
-<td align="left">0 / 3</td>
-<td align="right">6</td>
-<td align="left">–</td>
-</tr>
-<tr class="odd">
-<td align="left">6q16.3-21 (110-110 Mb)</td>
-<td align="left">3 / 0</td>
-<td align="right">4</td>
-<td align="left">AIM1, PDSS2, C6orf203</td>
-</tr>
-<tr class="even">
-<td align="left">6q21 (110-110 Mb)</td>
-<td align="left">3 / 0</td>
-<td align="right">4</td>
-<td align="left">AIM1, PDSS2, C6orf203</td>
-</tr>
-<tr class="odd">
-<td align="left">6q21 (110-110 Mb)</td>
-<td align="left">3 / 0</td>
-<td align="right">4</td>
-<td align="left">AIM1, PDSS2, C6orf203</td>
-</tr>
-<tr class="even">
-<td align="left">6q21 (110-110 Mb)</td>
-<td align="left">3 / 0</td>
-<td align="right">4</td>
-<td align="left">AIM1, PDSS2, C6orf203</td>
-</tr>
-<tr class="odd">
-<td align="left">6q23.1-23.2 (130-130 Mb)</td>
-<td align="left">0 / 3</td>
+<td align="left">5q11.2 (52-53 Mb)</td>
+<td align="left">0 / 21</td>
 <td align="right">3</td>
 <td align="left">–</td>
 </tr>
 <tr class="even">
+<td align="left">5q11.2 (58-59 Mb)</td>
+<td align="left">0 / 21</td>
+<td align="right">6</td>
+<td align="left">–</td>
+</tr>
+<tr class="odd">
+<td align="left">5q35.2 (170-170 Mb)</td>
+<td align="left">0 / 20</td>
+<td align="right">7</td>
+<td align="left">–</td>
+</tr>
+<tr class="even">
+<td align="left">5q11.2 (53-56 Mb)</td>
+<td align="left">0 / 19</td>
+<td align="right">7</td>
+<td align="left">–</td>
+</tr>
+<tr class="odd">
+<td align="left">5q11.2 (57-58 Mb)</td>
+<td align="left">0 / 19</td>
+<td align="right">6</td>
+<td align="left">–</td>
+</tr>
+<tr class="even">
+<td align="left">5q11.2 (58-58 Mb)</td>
+<td align="left">0 / 19</td>
+<td align="right">6</td>
+<td align="left">–</td>
+</tr>
+<tr class="odd">
+<td align="left">16q21-22.1 (64-68 Mb)</td>
+<td align="left">0 / 18</td>
+<td align="right">8</td>
+<td align="left">–</td>
+</tr>
+<tr class="even">
+<td align="left">5q11.2 (56-57 Mb)</td>
+<td align="left">0 / 17</td>
+<td align="right">7</td>
+<td align="left">–</td>
+</tr>
+<tr class="odd">
+<td align="left">5q35.2 (170-170 Mb)</td>
+<td align="left">0 / 17</td>
+<td align="right">7</td>
+<td align="left">–</td>
+</tr>
+<tr class="even">
 <td align="left">10p14-15.1 (4-12 Mb)</td>
-<td align="left">0 / 3</td>
+<td align="left">1 / 16</td>
 <td align="right">13</td>
+<td align="left">GATA3</td>
+</tr>
+<tr class="odd">
+<td align="left">5q35.1 (170-170 Mb)</td>
+<td align="left">0 / 16</td>
+<td align="right">2</td>
+<td align="left">–</td>
+</tr>
+<tr class="even">
+<td align="left">5q35.2 (170-170 Mb)</td>
+<td align="left">0 / 16</td>
+<td align="right">7</td>
+<td align="left">–</td>
+</tr>
+<tr class="odd">
+<td align="left">17q21.32 (45-46 Mb)</td>
+<td align="left">0 / 16</td>
+<td align="right">15</td>
+<td align="left">–</td>
+</tr>
+<tr class="even">
+<td align="left">5q11.2 (56-56 Mb)</td>
+<td align="left">0 / 15</td>
+<td align="right">7</td>
+<td align="left">–</td>
+</tr>
+<tr class="odd">
+<td align="left">16q23.1-24.3 (78-89 Mb)</td>
+<td align="left">2 / 13</td>
+<td align="right">11</td>
+<td align="left">GLG1, GLG1</td>
+</tr>
+<tr class="even">
+<td align="left">5q11.2 (57-57 Mb)</td>
+<td align="left">0 / 14</td>
+<td align="right">6</td>
+<td align="left">–</td>
+</tr>
+<tr class="odd">
+<td align="left">5q33.3 (160-160 Mb)</td>
+<td align="left">0 / 13</td>
+<td align="right">1</td>
+<td align="left">–</td>
+</tr>
+<tr class="even">
+<td align="left">5q35.1 (170-170 Mb)</td>
+<td align="left">0 / 12</td>
+<td align="right">2</td>
+<td align="left">–</td>
+</tr>
+<tr class="odd">
+<td align="left">12q13.2-13.3 (56-57 Mb)</td>
+<td align="left">4 / 7</td>
+<td align="right">28</td>
+<td align="left">KRT8, KRT18, SUOX, ZNF385A</td>
+</tr>
+<tr class="even">
+<td align="left">12q13.3 (57-57 Mb)</td>
+<td align="left">4 / 7</td>
+<td align="right">19</td>
+<td align="left">KRT8, KRT18, SUOX, ZNF385A</td>
+</tr>
+<tr class="odd">
+<td align="left">17q21.32 (46-46 Mb)</td>
+<td align="left">4 / 7</td>
+<td align="right">14</td>
+<td align="left">MAPT, MAPT, MAPT, MAPT</td>
+</tr>
+<tr class="even">
+<td align="left">5q35.1-35.2 (170-170 Mb)</td>
+<td align="left">0 / 10</td>
+<td align="right">4</td>
+<td align="left">–</td>
+</tr>
+<tr class="odd">
+<td align="left">11p15.2 (13-14 Mb)</td>
+<td align="left">0 / 10</td>
+<td align="right">1</td>
+<td align="left">–</td>
+</tr>
+<tr class="even">
+<td align="left">16q22.1 (68-68 Mb)</td>
+<td align="left">0 / 10</td>
+<td align="right">8</td>
+<td align="left">–</td>
+</tr>
+<tr class="odd">
+<td align="left">5q35.2 (170-170 Mb)</td>
+<td align="left">0 / 9</td>
+<td align="right">7</td>
+<td align="left">–</td>
+</tr>
+<tr class="even">
+<td align="left">16q22.2 (71-72 Mb)</td>
+<td align="left">2 / 7</td>
+<td align="right">10</td>
+<td align="left">GLG1, GLG1</td>
+</tr>
+<tr class="odd">
+<td align="left">12q14.1 (59-59 Mb)</td>
+<td align="left">1 / 7</td>
+<td align="right">6</td>
+<td align="left">SUOX</td>
+</tr>
+<tr class="even">
+<td align="left">17q12 (38-38 Mb)</td>
+<td align="left">4 / 4</td>
+<td align="right">34</td>
+<td align="left">ERBB2, GRB7, PNMT, MIEN1</td>
+</tr>
+<tr class="odd">
+<td align="left">5p12-5q11.1 (45-50 Mb)</td>
+<td align="left">0 / 7</td>
+<td align="right">4</td>
+<td align="left">–</td>
+</tr>
+<tr class="even">
+<td align="left">5q11.1-11.2 (50-52 Mb)</td>
+<td align="left">0 / 7</td>
+<td align="right">3</td>
 <td align="left">–</td>
 </tr>
 </tbody>
@@ -1008,73 +1040,208 @@ kable(hgp2[order(hgp2$neighbor_percentage, decreasing = T),], row.names = FALSE)
 </thead>
 <tbody>
 <tr class="odd">
-<td align="left">5q23.2-23.3</td>
+<td align="left">10p14-15.1</td>
+<td align="right">17</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">10p15.1-15.3</td>
+<td align="right">27</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">12q13.2-13.3</td>
 <td align="right">11</td>
 <td align="right">0</td>
 </tr>
 <tr class="even">
-<td align="left">5q33.1-33.3</td>
-<td align="right">17</td>
+<td align="left">12q13.3</td>
+<td align="right">11</td>
 <td align="right">0</td>
 </tr>
 <tr class="odd">
-<td align="left">5q33.3-34</td>
-<td align="right">23</td>
-<td align="right">0</td>
-</tr>
-<tr class="even">
-<td align="left">5q34</td>
-<td align="right">21</td>
-<td align="right">0</td>
-</tr>
-<tr class="odd">
-<td align="left">5q34</td>
+<td align="left">16q21-22.1</td>
 <td align="right">18</td>
 <td align="right">0</td>
 </tr>
 <tr class="even">
-<td align="left">5q34</td>
-<td align="right">15</td>
+<td align="left">16q22.1-22.2</td>
+<td align="right">27</td>
 <td align="right">0</td>
 </tr>
 <tr class="odd">
+<td align="left">16q23.1-24.3</td>
+<td align="right">15</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">17q21.32</td>
+<td align="right">16</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">17q21.32</td>
+<td align="right">26</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">17q21.32</td>
+<td align="right">11</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">5q23.2</td>
+<td align="right">31</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">5q23.2-23.3</td>
+<td align="right">34</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">5q23.3-33.1</td>
+<td align="right">31</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">5q33.1-33.3</td>
+<td align="right">35</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">5q33.3</td>
+<td align="right">13</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">5q33.3-34</td>
+<td align="right">43</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">5q34</td>
+<td align="right">50</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">5q34</td>
+<td align="right">36</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">5q34</td>
+<td align="right">26</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
 <td align="left">5q34-35.1</td>
+<td align="right">33</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">5q35.1</td>
+<td align="right">16</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">5q35.1</td>
+<td align="right">12</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">5q35.2</td>
 <td align="right">17</td>
 <td align="right">0</td>
 </tr>
 <tr class="even">
 <td align="left">5q35.2</td>
-<td align="right">14</td>
+<td align="right">16</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">5q35.2</td>
+<td align="right">20</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">5q35.2</td>
+<td align="right">35</td>
 <td align="right">0</td>
 </tr>
 <tr class="odd">
 <td align="left">5q35.2-35.3</td>
-<td align="right">16</td>
+<td align="right">37</td>
 <td align="right">0</td>
 </tr>
 <tr class="even">
 <td align="left">5q35.3</td>
-<td align="right">17</td>
+<td align="right">42</td>
 <td align="right">0</td>
 </tr>
 <tr class="odd">
 <td align="left">5q35.3</td>
-<td align="right">22</td>
+<td align="right">47</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">5q11.2</td>
+<td align="right">21</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">5q11.2</td>
+<td align="right">19</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">5q11.2</td>
+<td align="right">15</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">5q11.2</td>
+<td align="right">17</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">5q11.2</td>
+<td align="right">14</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">5q11.2</td>
+<td align="right">19</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">5q11.2</td>
+<td align="right">19</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">5q11.2</td>
+<td align="right">21</td>
 <td align="right">0</td>
 </tr>
 <tr class="even">
 <td align="left">5q11.2-14.3</td>
-<td align="right">13</td>
+<td align="right">34</td>
 <td align="right">0</td>
 </tr>
 <tr class="odd">
 <td align="left">5q14.3</td>
-<td align="right">18</td>
+<td align="right">39</td>
 <td align="right">0</td>
 </tr>
 <tr class="even">
 <td align="left">5q14.3</td>
-<td align="right">14</td>
+<td align="right">38</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">5q14.3-23.2</td>
+<td align="right">33</td>
 <td align="right">0</td>
 </tr>
 </tbody>
@@ -1086,8 +1253,8 @@ kable(hgp2[order(hgp2$neighbor_percentage, decreasing = T),], row.names = FALSE)
 <pre class="r"><code>library(igraph)
 mods &lt;- cluster_edge_betweenness(imarg)
 mod_tab &lt;- table(mods$membership)</code></pre>
-<p>There are 7 modules of size 15 or greater.</p>
-<p>The marginal network GO-enrichment is very limited by any standard—finding only 2 GO-terms enriched—especially so when compared to spaceMap, which found over 40 GO-enriched terms. Both methods identify a common GO-enrichment of proteins involved in transcriptional regulation that are in trans-association with 5q.</p>
+<p>There are 15 modules of size 15 or greater.</p>
+<p>The marginal network GO-enrichment is very limited—finding 9 GO-terms enriched—especially so when compared to spaceMap, which found 45 GO-enriched terms. Both methods identify common GO-enrichment of proteins involved in transcriptional regulation that are in trans-association with 5q as well as ion transmembrane transport associated with 17q21.32.</p>
 <pre class="r"><code>outmod &lt;- modEnrich(ig = imarg, mods = mods, levels = &quot;y&quot;, 
                     go2eg = go2eg, 
                     prefix = &quot;MARG&quot;, process_alias = process_alias)

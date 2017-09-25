@@ -17,6 +17,8 @@ navbar:
           href: neta.html
         - text: "5. Marginal Analysis"
           href: marginal.html
+        - text: "6. Hub Adjacency Analysis"
+          href: cna-hub-adjacency.html          
     - text: "BCPLS Code"
       icon: fa-github
       href: https://github.com/topherconley/neta-bcpls

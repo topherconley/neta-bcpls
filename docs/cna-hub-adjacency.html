@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+
+<meta name="author" content="Christopher Conley, Pei Wang, Umut Ozbek, Jie Peng" />
+
+<meta name="date" content="2017-09-24" />
+
+<title>BCPLS CNA Hub Adjacency Analysis</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/flatly.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-1.1/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-1.1/highlight.js"></script>
+<link href="site_libs/font-awesome-4.5.0/css/font-awesome.min.css" rel="stylesheet" />
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs && document.readyState && document.readyState === "complete") {
+   window.setTimeout(function() {
+      hljs.initHighlighting();
+   }, 0);
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+</head>
+
+<body>
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+  height: auto;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 60px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+
+.section h2 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+.section h3 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+.section h4 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+.section h5 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+.section h6 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+
+<div class="container-fluid main-container">
+
+<!-- tabsets -->
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+</script>
+
+<!-- code folding -->
+
+
+
+
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+  padding-left: 25px;
+  text-indent: 0;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row-fluid">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html"></a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Application</a>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+    BCPLS Data Analysis
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="data.html">1. Data</a>
+    </li>
+    <li>
+      <a href="mfits.html">2. Model Fitting</a>
+    </li>
+    <li>
+      <a href="annot.html">3. Annotation</a>
+    </li>
+    <li>
+      <a href="neta.html">4. Network Analysis</a>
+    </li>
+    <li>
+      <a href="marginal.html">5. Marginal Analysis</a>
+    </li>
+    <li>
+      <a href="cna-hub-adjacency.html">6. Hub Adjacency Analysis</a>
+    </li>
+  </ul>
+</li>
+<li>
+  <a href="https://github.com/topherconley/neta-bcpls">
+    <span class="fa fa-github"></span>
+     
+    BCPLS Code
+  </a>
+</li>
+<li>
+  <a href="https://topherconley.github.io/spacemap/">spacemap</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">BCPLS CNA Hub Adjacency Analysis</h1>
+<h4 class="author"><em>Christopher Conley, Pei Wang, Umut Ozbek, Jie Peng</em></h4>
+<h4 class="date"><em>2017-09-24</em></h4>
+
+</div>
+
+
+<div id="motivation" class="section level2">
+<h2>Motivation</h2>
+<p>Some of the reported CNA hubs from the network analysis pipeline have very short genomic distances between themselves (i.e. ‘adjacent’) and ought to be considered for merging them into one CNA hub. By computing their Pearson correlation and enumerating common edges between adjacent CNA hubs, we can have a better idea on whether merging is appropriate. If two adjacent CNA hubs are highly correlated, it is very likely that these CNA hubs should have been merged into one CNA hub by the fixed-order clustering algorithm (Pei Wang, 2005), but were not merged due to a few outlying values (large sample discrepancies between two adjacent CNA). Additionally, knowing how large the CNA hub intervals are and how much overlap there is in edges helps determine whether one should consider merging the adjacent CNA hubs into one hub and bundling their corresponding trans edges. In what follows, we consider these factors for merging adjacent hubs on a case-by-case basis for CNA–protein and CNA–mRNA breast cancer networks, respectively.</p>
+<p>Define functions to compute correlation between adjacent CNA hubs and to report the number of overlapping edges between them.</p>
+<pre class="r"><code>check_adjacent_correlation &lt;- function(hub, show_plot = T, ecna = NULL) { 
+
+    res &lt;- round(cor(ecna[,hub[1]], ecna[,hub[2]]),2)
+  #if (show_plot &amp; !is.null(ecna)) { 
+  library(ggplot2)
+  gg &lt;- ggplot2::qplot(x = ecna[,hub[1]], y  = ecna[,hub[2]],
+                 ylab = names(hub)[1],
+                 xlab = names(hub)[2]) + theme_bw() + 
+    annotate(geom=&quot;text&quot;, x=-1, y=1, label=paste(&quot;Correlation&quot;, 
+                                                 res),
+             color=&quot;red&quot;)  
+  #}
+  #res
+  gg
+}
+num_common_hub_edges &lt;- function(hub, ig) { 
+  huba &lt;- as_ids(E(ig)[inc(V(ig)$name %in% hub[1])])
+  hubb &lt;- as_ids(E(ig)[inc(V(ig)$name %in% hub[2])])
+  a &lt;- sapply(strsplit(x = huba, split = &quot;|&quot;, fixed = TRUE), function(x) x[2])
+  b &lt;- sapply(strsplit(x = hubb, split = &quot;|&quot;, fixed = TRUE), function(x) x[2])
+  length(intersect(a, b))
+}</code></pre>
+</div>
+<div id="adjacent-bcpls-cna-hubs-protein" class="section level2">
+<h2>Adjacent BCPLS CNA hubs (Protein)</h2>
+<p>Load the protein and CNA data.</p>
+<pre class="r"><code>suppressPackageStartupMessages(library(Biobase))
+protset &lt;- readRDS(file = &quot;data/prot-expression-set.rds&quot;)
+y &lt;- t(exprs(protset))
+cnaset &lt;- readRDS(file = &quot;data/cna-expression-set.rds&quot;)
+x &lt;- t(exprs(cnaset))</code></pre>
+<p>Load spaceMap’s CNA–protein network.</p>
+<pre class="r"><code>pgraphml &lt;- &quot;/Users/bioinformatics/repos/neta-bcpls/neta/spacemap-prot-boot-vote.graphml&quot;
+stopifnot(file.exists(pgraphml))
+suppressPackageStartupMessages(library(igraph))
+pig &lt;- read_graph(file = pgraphml, format = &quot;graphml&quot;)</code></pre>
+<div id="q22" class="section level3">
+<h3>16q22</h3>
+<pre class="r"><code>hubs &lt;- c(&quot;16_68039840_68051376_0&quot;,&quot;16_68063383_71366920_0&quot;)
+names(hubs) &lt;- c(&quot;16q22.1-22.2 (68-71 Mb)&quot;, &quot;16q22.1 (68-68 Mb)&quot;)</code></pre>
+<p>The scatter plot of the adjacent CNA hubs on 16q22 show highly correlated CNA across patient samples. The few outliers are likely the cause of not having merged this into one cluster. Hub 16q22.1-22.2 (68-71 Mb) has 70 trans edges and hub 16q22.1 (68-68 Mb) has 16 trans edges with 10 common edges between the two hubs. Due to the high overlap, we believe these adjacent hubs ought to be merged and that they are directly an artifact of the CNA clustering stage. With the evidence available to us, we are not able to infer that the common trans edge is only driven by a few tumors that happen to have a long CNA covering both small CNA analyzed, as suggested by a thoughtful reviewer of our method.</p>
+<pre class="r"><code>check_adjacent_correlation(hub = hubs, ecna = x )</code></pre>
+<p><img src="cna-hub-adjacency_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+</div>
+<div id="p11.2" class="section level3">
+<h3>17p11.2</h3>
+<pre class="r"><code>hubs &lt;-  c(&quot;17_20255440_20890727_0&quot;, &quot;17_19777544_19864430_0&quot;)
+names(hubs) &lt;- c(&quot;17p11.2 (20-21 Mb)&quot;, &quot;17p11.2 (20-20 Mb)&quot;)</code></pre>
+<p>The scatter plot of the adjacent CNA hubs on 17p11.2 show well correlated CNA-profiles with the same outlier problem as 16q22. Hub 17p11.2 (20-21 Mb) has 5 trans edges and hub 17p11.2 (20-20 Mb) has 6 trans edges with 0 common edges between the two hubs. The lack of edge overlap makes us hesitant to merge these adjacent CNA hubs despite their proximity.</p>
+<pre class="r"><code>check_adjacent_correlation(hub = hubs, ecna = x )</code></pre>
+<p><img src="cna-hub-adjacency_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+</div>
+</div>
+<div id="adjacent-bcpls-cna-hubs-rna" class="section level2">
+<h2>Adjacent BCPLS CNA hubs (RNA)</h2>
+<p>Load spaceMap’s CNA–mRNA network.</p>
+<pre class="r"><code>rgraphml &lt;- &quot;/Users/bioinformatics/repos/neta-bcpls/neta/spacemap-rna-boot-vote.graphml&quot;
+stopifnot(file.exists(rgraphml))
+library(igraph)
+rig &lt;- read_graph(file = rgraphml, format = &quot;graphml&quot;)</code></pre>
+<div id="q14.3" class="section level3">
+<h3>5q14.3</h3>
+<pre class="r"><code>hubs &lt;-  c(&quot;5_88348122_89201306_0&quot;,&quot;5_89203610_90774367_0&quot;)
+names(hubs) &lt;- c(&quot;5q14.3 (88-89 Mb)&quot;,&quot;5q14.3 (89-91 Mb)&quot;)</code></pre>
+<p>The scatter plot of the adjacent CNA hubs on 5q14.3 in the RNA data is like that of 16q22 in the protein data. The large outlier is likely the cause of not having merged this into one cluster. Hub 5q14.3 (88-89 Mb) has 97 trans edges and hub 5q14.3 (89-91 Mb) has 72 trans edges with 43 common edges between the two hubs. Due to the high overlap, we believe these adjacent hubs ought to be merged and that they are directly an artifact of the CNA clustering stage.</p>
+<pre class="r"><code>check_adjacent_correlation(hub = hubs, ecna = x )</code></pre>
+<p><img src="cna-hub-adjacency_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
+</div>
+<div id="q34" class="section level3">
+<h3>5q34</h3>
+<pre class="r"><code>hubs &lt;-  c(&quot;5_164621218_166461162_0&quot;,&quot;5_166465008_168130127_0&quot;)
+names(hubs) &lt;- c(&quot;5q34 (160-170 Mb)&quot;,&quot;5q34 (170-170 Mb)&quot;)</code></pre>
+<p>Hub 5q34 (160-170 Mb) has 188 trans edges and hub 5q34 (170-170 Mb) has 8 trans edges, 7 of which overlap. These adjacent CNA hubs are very likely to be clustered together in the absence of outlying samples. Given the relatively high edge overlap we recommend a merger of the hubs.</p>
+<pre class="r"><code>check_adjacent_correlation(hub = hubs, ecna = x )</code></pre>
+<p><img src="cna-hub-adjacency_files/figure-html/unnamed-chunk-12-1.png" width="672" /></p>
+</div>
+<div id="p14-15.3" class="section level3">
+<h3>10p14-15.3</h3>
+<pre class="r"><code>hubs &lt;-  c(&quot;10_424200_4026124_0&quot;,&quot;10_4028083_11642478_0&quot;)
+names(hubs) &lt;- c(&quot;10p15.1-15.3 (0.42-4 Mb)&quot;,&quot;10p14-15.1 (4-12 Mb)&quot;)</code></pre>
+<p>Hub 10p15.1-15.3 (0.42-4 Mb) has 55 trans edges and hub 10p14-15.1 (4-12 Mb) has 61 trans edges, 6 of which overlap. Given the large size of these hubs (&gt; 3Mb in each) and the limited overlap we do not think it is fully justified in merge these adjacent CNA hubs.</p>
+<pre class="r"><code>check_adjacent_correlation(hub = hubs, ecna = x)</code></pre>
+<p><img src="cna-hub-adjacency_files/figure-html/unnamed-chunk-14-1.png" width="672" /></p>
+</div>
+<div id="p21.3-22.23" class="section level3">
+<h3>9p21.3-22.23</h3>
+<pre class="r"><code>hubs &lt;-  c(&quot;9_9411107_15241495_0&quot;,&quot;9_15259791_20352615_0&quot;)
+names(hubs) &lt;- c(&quot;9p22.3-23 (9.4-15 Mb)&quot;,&quot;9p21.3-22.3 (15-20 Mb)&quot;)</code></pre>
+<p>Hub 9p22.3-23 (9.4-15 Mb) has 36 trans edges and hub 9p21.3-22.3 (15-20 Mb)has 7 trans edges, where all 7 of them overlap with its adjacent CNA hub. These ought to be merged.</p>
+<pre class="r"><code>check_adjacent_correlation(hub = hubs, ecna = x)</code></pre>
+<p><img src="cna-hub-adjacency_files/figure-html/unnamed-chunk-16-1.png" width="672" /></p>
+</div>
+</div>
+
+<p>Copyright &copy; 2017 Regents of the University of California. All rights reserved.</p>
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

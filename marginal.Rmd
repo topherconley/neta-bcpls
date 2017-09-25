@@ -103,7 +103,6 @@ pxypval <- readRDS("~/scratch-data/neta-bcpls/marginal/xy_pearson_protein_bcpls.
 pyypval <- readRDS("~/scratch-data/neta-bcpls/marginal/yy_pearson_protein_bcpls.rds")
 ```
 
-
 ```{r, eval = F, echo = F}
 #mrna do not investigate for now. 
 rnaset <- readRDS(file = "data/rna-expression-set.rds")
@@ -145,7 +144,7 @@ thresh <- 0.05
 sigCor <- adjpxypval <= thresh
 ```
 
-Form the adjacency matrices of the marginal (Pearson correlation) network. Apply the Benjamini-Hochberg correction to every (CNA--protein, protein--protein) interaction  and then keep only those interactions that pass an FDR < 0.1. This method produces  what we refer to hereafter as the "marginal network" from the significant protein-CNA interactions based on Pearson correlations (FDR < 0.1). Note that an FDR threshold of 0.05 and 0.01 produce the same number of significant edges. An FDR of 0.1 is a reasonable threshold for exploratory network analyses such as this.  
+Form the adjacency matrices of the marginal (Pearson correlation) network. Apply the Benjamini-Hochberg correction to every (CNA--protein, protein--protein) interaction  and then keep only those interactions that pass an FDR < 0.05. This method produces  what we refer to hereafter as the "marginal network" from the significant protein-CNA interactions based on Pearson correlations (FDR < 0.05). Note that varying the FDR produces relatively the same number of $y-y$ edges, while the number of $x-y$ edges increaes dramatically with increasing FDR suggesting many of the $x-y$ edges are not very stable. 
 
 ```{r}
 adjMatCor <- function(xp, dyp, x, y, thresh = 0.1) { 
@@ -153,7 +152,6 @@ adjMatCor <- function(xp, dyp, x, y, thresh = 0.1) {
   #partition and index x--y vs y--y
   xp <- as.numeric(xp)
   yp <- as.matrix(dyp$pvalue)
-  thresh <- 0.01
   nxp <- length(xp)
   nyp <- length(yp)
   xi <- 1:nxp
@@ -188,7 +186,7 @@ adjMatCor <- function(xp, dyp, x, y, thresh = 0.1) {
   #return list of adjacency matrices
   list(yy = adjyy, xy = adjxy)
 }
-marg <- adjMatCor(xp = pxypval, dyp = pyypval, x = x, y = y, thresh = 0.1)
+marg <- adjMatCor(xp = pxypval, dyp = pyypval, x = x, y = y, thresh = 0.05)
 #check to make feature labels are correct.
 stopifnot(all(colnames(x) == xinfo$id), all(colnames(y) == yinfo$id))
 ```
@@ -284,7 +282,7 @@ marg_xhubs <- as_ids(V(imargxy)[igraph::degree(imargxy) > 0 & V(imargxy)$levels 
 ig_xhubs <- as_ids(V(igxy)[igraph::degree(igxy) > 0 & V(igxy)$levels %in% "x"])
 ```
 
-The `r length(intersect(ig_xhubs, marg_xhubs))` common CNA hubs between marginal and spaceMap networks are consistent with the original BCPLS publication, which reported "5q (loss of heterozygosity (LOH) in basal; gain in luminal B), 10p (gain in basal), 12 (gain in basal), 16q (luminal A deletion), 17q (luminal B amplification), and 22q (LOH in luminal and basal)".  Notably, only  22q is absent from the spaceMap analysis and only 3 small-degree CNA hubs (mean degree of 1.19) from 22q are represented by the marginal analysis. The evidence leaves open the possiblity that the the variance filter applied to the original data may have omitted proteins that are perturbed by 22q; or that the CNA hub-wise FDR filter applied in the original BCPLS study , rather than a global FDR correction, allowed the BCPLS authros to report more CNA hub regions. 
+The `r length(intersect(ig_xhubs, marg_xhubs))` common CNA hubs between marginal and spaceMap networks are consistent with the original BCPLS publication, which reported "5q (loss of heterozygosity (LOH) in basal; gain in luminal B), 10p (gain in basal), 12 (gain in basal), 16q (luminal A deletion), 17q (luminal B amplification), and 22q (LOH in luminal and basal)".  Notably, only  22q is absent from the spaceMap analysis and only a few small-degree CNA hubs (mean degree of 1.19) from 22q are represented by the marginal analysis. The evidence leaves open the possiblity that the the variance filter applied to the original data may have omitted proteins that are perturbed by 22q; or that the CNA hub-wise FDR filter applied in the original BCPLS study , rather than a global FDR correction, allowed the BCPLS authros to report more CNA hub regions. 
 
 ```{r, echo = F}
 common_cna_report <- data.frame(`Common CNA hub` = xinfo$alias[match(intersect(ig_xhubs, marg_xhubs), xinfo$id)],
@@ -294,8 +292,7 @@ names(common_cna_report) <- c("Common CNA hub", "spaceMap degree", "marginal deg
 knitr::kable(common_cna_report, row.names = F)
 ```
 
-
-The CNA hubs unique to spaceMap (listed below) are associated with module P1, but are not associated with any specific GO-enriched proteins. Those CNA hubs are: 
+There are no CNA hubs unique to spaceMap. 
 
 ```{r}
 #as_data_frame(x = ig, what = "vertices")[setdiff(ig_xhubs, marg_xhubs),]
@@ -363,7 +360,7 @@ mod_tab <- table(mods$membership)
 
 There are `r sum(mod_tab >= 15)` modules of size 15 or greater. 
 
-The marginal network GO-enrichment is very limited by any standard---finding only 2 GO-terms enriched---especially so when compared to spaceMap, which found over 40 GO-enriched terms. Both methods identify a common GO-enrichment of proteins involved in transcriptional regulation that are in trans-association with 5q. 
+The marginal network GO-enrichment is very limited---finding 9 GO-terms enriched---especially so when compared to spaceMap, which found 45 GO-enriched terms. Both methods identify common GO-enrichment of proteins involved in transcriptional regulation that are in trans-association with 5q as well as ion transmembrane transport associated with 17q21.32. 
 
 ```{r}
 outmod <- modEnrich(ig = imarg, mods = mods, levels = "y", 
